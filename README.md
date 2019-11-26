@@ -1,2 +1,2 @@
 # ClimateDataAutomation
-Repository to hold climate and soil data for APSIMX automation
+Repository to hold climate data for APSIMX automation
