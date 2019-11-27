@@ -412,10 +412,12 @@ def main():
   pargs = args.get_args()
 
   # Setup logging
+  # We need to pass the "logger" to any Classes or Modules that may use it 
+  # in our script
   try:
     import coloredlogs
     logger = logging.getLogger('POPBEAST')
-    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG")
+    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
     
   except ModuleNotFoundError:
     logger = logging.getLogger('POPBEAST')
