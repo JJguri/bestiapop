@@ -30,36 +30,9 @@ from pathlib import Path
 
 class Arguments():
 
-  '''
-  # Example calling the main function "generate_silo_dataframe"
-  # Here, we tell it to get all "daily_rain" data between years 2010 and 2015
-  # Also we are retrieving for the coordinates grid that wrap Tasmania
-  # Since download_files=True, it will download the files directly from SILO S3 buckets
-  # unless the files have already been downloaded. Sit and wait!
-
-  # Example #2
-  # Retrieving for only year 2010 and for a limited latitude and longitude
-  generate_silo_dataframe(year_range=["1998-2017"], variable_short_name='radiation', 
-                  lat_range=[-41.05], -41.05-146.0
-                  lon_range=[146.0],
-                    output_to_file=True, create_met=True)
-  generate_silo_dataframe(year_range=["1998-2017"], variable_short_name='max_temp', 
-                  lat_range=[-40.85],
-                  lon_range=[145.45,145.5],
-                    output_to_file=True, create_met=True)
-  generate_silo_dataframe(year_range=["1998-2017"], variable_short_name='min_temp', 
-                  lat_range=[-40.85],
-                  lon_range=[145.45,145.5],
-                    output_to_file=True, create_met=True)
-  generate_silo_dataframe(year_range=["1998-2017"], variable_short_name='daily_rain', 
-                  lat_range=[-40.85],
-                  lon_range=[145.45,145.5],
-                    output_to_file=True, create_met=True)
-  '''
-
   def __init__(self, args):
     self.parser = argparse.ArgumentParser(
-        description="XML to JSON Document Converter"
+        description="SILO Climate Data Extractor"
         )
 
     self.parser.add_argument(
