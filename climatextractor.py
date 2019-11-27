@@ -16,7 +16,7 @@
 
 import argparse
 import calendar
-import datetime
+import logging
 import netCDF4
 import numpy as np
 import pandas as pd
@@ -25,6 +25,7 @@ import os
 import shutil
 import sys
 import time
+from datetime import datetime as datetime
 from numpy import array
 from pathlib import Path
 
@@ -91,10 +92,11 @@ class Arguments():
 
 class SILO():
 
-  def __init__(self, outputpath, variable_short_name, year_range, lat_range, lon_range):
+  def __init__(self, logger, outputpath, variable_short_name, year_range, lat_range, lon_range):
 
     # Initializing variables
-    logger.info('Initializing {}'.format(__name__))
+    self.logger = logger
+    self.logger.info('Initializing {}'.format(__name__))
     self.outputdir = Path(outputpath)
     self.variable_short_name = variable_short_name
     self.year_range = year_range
@@ -104,24 +106,24 @@ class SILO():
     # Validate output directory
     if self.outputdir.is_dir() == True:
       if self.outputdir.exists() == False:
-        logger.info('{} does not exist, creating it...'.format(self.outputdir))
+        self.logger.info('{} does not exist, creating it...'.format(self.outputdir))
         self.outputdir.mkdir(parents=True, exist_ok=True)
     elif (self.outputdir.is_file() == True) and (self.outputdir.exists() == False):
-      logger.error('File {} does not exist'.format(self.outputdir))
+      self.logger.error('File {} does not exist'.format(self.outputdir))
     else:
-      logger.error('{} is not a folder, please provide a folder path'.format(self.outputdir))
+      self.logger.error('{} is not a folder, please provide a folder path'.format(self.outputdir))
       sys.exit(1)
   
   def process_records(self, action):
     # Let's check what's inside the "action" variable and invoke the corresponding function
     if action == "download-silo-file":
-      logger.info('Action {} not implemented yet'.format(action))
+      self.logger.info('Action {} not implemented yet'.format(action))
 
     elif action == "convert-nc4-to-met":
-      logger.info('Action {} not implemented yet'.format(action))
+      self.logger.info('Action {} not implemented yet'.format(action))
 
     elif action == "convert-nc4-to-csv":
-      logger.info('Converting files to CSV format')
+      self.logger.info('Converting files to CSV format')
       # 1. Let's invoke generate_silo_dataframe with the appropriate options
       generate_silo_dataframe(year_range=list(self.year_range),
                               variable_short_name=self.variable_short_name, 
@@ -133,7 +135,7 @@ class SILO():
                               output_format="CSV")
 
     elif action == "download-and-convert-to-met":
-      logger.info('Downloading files and converting to MET format')
+      self.logger.info('Downloading files and converting to MET format')
       # 1. Let's invoke generate_silo_dataframe with the appropriate options
       generate_silo_dataframe(year_range=list(self.year_range),
                               variable_short_name=self.variable_short_name, 
@@ -154,7 +156,7 @@ class SILO():
       # So if we want the function to return all values for 
       # rain we shall call the function as:
       # load_file(sourcepath, sourcefile, 'daily_rain')
-      logger.info('Loading netCDF4 file {}'.format(sourcepath))
+      self.logger.info('Loading netCDF4 file {}'.format(sourcepath))
       data_handle = netCDF4.Dataset(sourcepath, 'r')
       
       # Extracting the "year" from within the file itself, 
@@ -313,7 +315,7 @@ class SILO():
         At the end, it will output a file with all the contents if
         "output_to_file=True" (by default it is "True")
         '''
-        logger.info('Generating DataFrames')
+        self.logger.info('Generating DataFrames')
 
         # let's first create an empty df to store 
         # all data for a given year
@@ -330,11 +332,11 @@ class SILO():
         # Loading and/or Downloading the files
         for year in year_range:
 
-            logger.info('Processing data for year {}'.format(year))
+            self.logger.info('Processing data for year {}'.format(year))
 
             # should we download the file first?
             if download_files == True:
-                logger.debug('Attempting to download files')
+                self.logger.debug('Attempting to download files')
                 download_file_from_silo_s3(year, variable_short_name, outputdir)
 
             # Opening the target CDF database
@@ -347,14 +349,14 @@ class SILO():
                 sourcepath = outputdir
 
             if sourcepath.exists() == False:
-                logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the output directory. Skipping...'.format(sourcepath))
+                self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the output directory. Skipping...'.format(sourcepath))
                 continue
 
             data = load_cdf_file(sourcepath, variable_short_name)
         
             # Now iterating over lat and lon combinations
             # Each year-lat-lon matrix generates a different file
-            logger.info('Iterating over Lat and Lon value combinations')
+            self.logger.info('Iterating over Lat and Lon value combinations')
             
             for lat in lat_range:
 
@@ -362,7 +364,7 @@ class SILO():
 
                     file_year = data['data_year']
 
-                    logger.info('Processing Lat {} - Lon {} for year {}'.format(lat, lon, file_year))
+                    self.logger.info('Processing Lat {} - Lon {} for year {}'.format(lat, lon, file_year))
 
                     # here we are checking whether the get_values_from_cdf function
                     # returns with a ValueError (meaning there were no values for
@@ -383,7 +385,7 @@ class SILO():
 
                             if outputdir.is_dir() == True:
                                 metfile_name = '{}-{}-{}.met'.format(variable_short_name,lat,lon)
-                                logger.info('Writting .met file {} to {}'.format(metfile_name, output_dir))
+                                self.logger.info('Writting .met file {} to {}'.format(metfile_name, output_dir))
                         
                         # Should we output using MET file format?
                         elif output_format == "CSV":
@@ -395,7 +397,7 @@ class SILO():
 
                             if outputdir.is_dir() == True:
                                 csv_file_name = '{}-{}-{}-{}.csv'.format(variable_short_name, file_year, lat, lon)
-                                logger.info('Writting CSV file {} to {}'.format( csv_file_name, outputdir))
+                                self.logger.info('Writting CSV file {} to {}'.format( csv_file_name, outputdir))
                                 yearly_df.to_csv(csv_file_name, sep=',', index=False, mode="a")
 
                     # when we get out of this Longitude leaf node, we would have
@@ -410,13 +412,19 @@ def main():
   pargs = args.get_args()
 
   # Setup logging
-  logger = logging.getLogger('POPBEAST')
-  formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
-  console_handler = logging.StreamHandler()
-  console_handler.setFormatter(formatter)
-  console_handler.setLevel(logging.DEBUG)
-  logger.addHandler(console_handler)
-  logger.setLevel(logging.DEBUG)
+  try:
+    import coloredlogs
+    logger = logging.getLogger('POPBEAST')
+    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG")
+    
+  except ModuleNotFoundError:
+    logger = logging.getLogger('POPBEAST')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.DEBUG)
+    logger.addHandler(console_handler)
+    logger.setLevel(logging.INFO)
   
   # Capturing start time for debugging purposes
   st = datetime.now()
@@ -424,7 +432,7 @@ def main():
   logger.info("Starting POPBEAST Climate Automation Framework")
   
   # Grab an instance of the SILO class
-  silo_instance = SILO(pargs.output_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
+  silo_instance = SILO(logger, pargs.output_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
   # Start to process the records
   silo_instance.process_records(pargs.action)
     
