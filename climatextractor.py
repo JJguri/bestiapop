@@ -65,7 +65,7 @@ class Arguments():
 
         self.parser.add_argument(
             "-lat", "--latitude-range",
-            help="The latitude range to download data from the grid to a decimal degree, separated by a comma, in increments of 0.05. It also accepts single values. Examples: -lat -40.85,-40.90 \n -lat 30.10,33 \n -lat -41",
+            help="The latitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lat ""-40.85 -40.90"" \n -lat ""30.10 33"" \n -lat -41",
             type=self.csv_list,
             default=None,
             required=False
@@ -73,7 +73,7 @@ class Arguments():
 
         self.parser.add_argument(
             "-lon", "--longitude-range",
-            help="The longitude range to download data from the grid to a decimal degree, separated by a comma, in increments of 0.05. It also accepts single values. Examples: -lon 145.45,145.5 \n -lon 145.10,146 \n -lon 145",
+            help="The longitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lon ""145.45 145.5"" \n -lon ""145.10 146"" \n -lon 145",
             type=self.csv_list,
             required=False
             )
