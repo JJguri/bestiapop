@@ -18,7 +18,6 @@
 import argparse
 import calendar
 import logging
-import netCDF4
 import numpy as np
 import pandas as pd
 import requests
@@ -47,7 +46,7 @@ class Arguments():
             choices=["download-silo-file", "convert-nc4-to-met", "convert-nc4-to-csv", "download-and-convert-to-met"],
             default="convert-nc4-to-csv",
             required=True
-            )        
+            )
 
         self.parser.add_argument(
             "-y", "--year-range",
@@ -56,7 +55,7 @@ class Arguments():
             default="",
             required=True
             )
-            
+
         self.parser.add_argument(
             "-c", "--climate-variable",
             help="The climate variable you want to download data for. To see all variables: https://www.longpaddock.qld.gov.au/silo/about/climate-variables/",
@@ -124,7 +123,7 @@ class SILO():
 
         self.year_range = year_range
 
-        # Check whether a lat and lon range with "-" was provided.
+        # Check whether a lat and lon range separated by a space was provided.
         # If this is the case, generate a list out of it
         # NOTE: for some reason I get a list within a list from the argparse...
         if lat_range:
@@ -403,7 +402,7 @@ class SILO():
                     try:
                         yearly_values_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, variable_short_name)
                     except ValueError:
-                        pass
+                        continue
                     
                     # Should we generate any file output?
                     if output_to_file == True:
@@ -425,7 +424,11 @@ class SILO():
                             if outputdir.is_dir() == True:
                                 csv_file_name = '{}-{}.{}-{}.csv'.format(variable_short_name, file_year, lat, lon)
                                 self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-                                yearly_values_df.to_csv(csv_file_name, sep=',', index=False, mode='a', float_format='%.1f')
+                                full_output_path = outputdir/csv_file_name
+                                yearly_values_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
+                    
+                    # "reset" the yearly_values_df back to zero.
+                    yearly_values_df = pd.DataFrame()
 
 
 def main():
