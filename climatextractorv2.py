@@ -25,8 +25,8 @@ import os
 import sys
 import time
 import xarray as xr
-from dask import array as da
-from dask.diagnostics import ProgressBar
+#from dask import array as da
+#from dask.diagnostics import ProgressBar
 from datetime import datetime as datetime
 from numpy import array
 from pathlib import Path
