@@ -17,3 +17,9 @@ python climatextractor.py -a download-silo-file -y 2015 -c daily_rain -o C:\some
 ```powershell
 python climatextractor.py -a convert-nc4-to-csv -y 2015 -c daily_rain -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\folder
 ```
+
+## References
+
+1. https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f
+2. http://xarray.pydata.org/en/stable/dask.html
+3. 

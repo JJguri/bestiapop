@@ -2,7 +2,7 @@
 
 '''
  NAME: POPBEAST SILO CLIMATE EXCTRACTOR
- VERSION: 0.2
+ VERSION: 2.0
  AUTHOR: Diego Perez (@darkquasar) - Jonathan Ojeda () - 
  DESCRIPTION: Main module that automates the download of data from APSIM and subsequent transformations into MET files
  
@@ -25,6 +25,7 @@ import requests
 import os
 import sys
 import time
+import xarray as xr
 from dask import array as da
 from dask.diagnostics import ProgressBar
 from datetime import datetime as datetime
@@ -121,36 +122,38 @@ class SILO():
         else:
             year_range = [int(year_range)]
 
+        self.year_range = year_range
+
         # Check whether a lat and lon range with "-" was provided.
         # If this is the case, generate a list out of it
         # NOTE: for some reason I get a list within a list from the argparse...
-        if len(lat_range) > 1:
-            if lat_range[0] < 0 and lat_range[1] < 0:
-                if lat_range[0] > lat_range[1]:
-                    # We are clearly dealing with negative numbers
+        if lat_range:
+            if len(lat_range) > 1:
+                if lat_range[0] < 0 and lat_range[1] < 0:
+                    if lat_range[0] > lat_range[1]:
+                        # We are clearly dealing with negative numbers
+                        # User has mistakenly swapped the order of numbers
+                        # we need to silently swap them back
+                        first_lat = lat_range[1]
+                        last_lat = lat_range[0]
+                    else:
+                        first_lat = lat_range[0]
+                        last_lat = lat_range[1]
+                lat_range = np.arange(first_lat,last_lat,0.05).round(decimals=2)
+            self.lat_range = lat_range
+
+        if lon_range:
+            if len(lon_range) > 1:
+                if lon_range[0] > lon_range[1]:
                     # User has mistakenly swapped the order of numbers
                     # we need to silently swap them back
-                    first_lat = lat_range[1]
-                    last_lat = lat_range[0]
+                    first_lon = lon_range[1]
+                    last_lon = lon_range[0]
                 else:
-                    first_lat = lat_range[0]
-                    last_lat = lat_range[1]
-            lat_range = np.arange(first_lat,last_lat,0.05).round(decimals=2)
-
-        if len(lon_range) > 1:
-            if lon_range[0] > lon_range[1]:
-                # User has mistakenly swapped the order of numbers
-                # we need to silently swap them back
-                first_lon = lon_range[1]
-                last_lon = lon_range[0]
-            else:
-                first_lon = lon_range[0]
-                last_lon = lon_range[1]
-            lon_range = np.arange(first_lon,last_lon,0.05).round(decimals=2)
-
-        self.year_range = year_range
-        self.lat_range = lat_range
-        self.lon_range = lon_range
+                    first_lon = lon_range[0]
+                    last_lon = lon_range[1]
+                lon_range = np.arange(first_lon,last_lon,0.05).round(decimals=2)
+            self.lon_range = lon_range
 
         # Validate output directory
         if self.outputdir.is_dir() == True:
@@ -209,51 +212,21 @@ class SILO():
         # rain we shall call the function as:
         # load_file(sourcepath, sourcefile, 'daily_rain')
         self.logger.info('Loading netCDF4 file {}'.format(sourcepath))
-        data_handle = netCDF4.Dataset(sourcepath, 'r')
+        DS_data_handle = xr.open_dataset(sourcepath)
         
-        # Extracting the "year" from within the file itself, 
-        # regardless of the file name
-        data_year = int(data_handle.variables['time'].units[11:15])
+        # Extracting the "year" from within the file itself.
+        # For this we get a sample of the values and then 
+        # convert the first value to a year. Assuming we are dealing
+        # with single year files as per SILO S3 files, this shouldn't
+        # represent a problem
+        DS_sample = DS_data_handle.time.head().values[1]
+        data_year = DS_sample.astype('datetime64[Y]').astype(int) + 1970
         
-        # Storing an array of values in a variable
-        # TODO: Perform this operation using a dask array to speed up process
-        self.logger.info('Storing data points for {} in an array'.format(sourcepath))
-        #value_array = data_handle.variables[data_category][:]
-        value_array = da.from_array(data_handle.variables[data_category], chunks=data_handle.variables[data_category].shape)
-        with TQDMDaskProgressBar():
-            value_array = value_array.compute()
-        #value_array = value_array.compute()
-
-        # Getting total grid size into variables
-        # For Australia, the Latitude is a negative value, as it's counted as degrees North
-        lat_total_value_count = len(data_handle.variables['lat'])
-        first_lat = data_handle.variables['lat'][0].item()
-        last_lat = data_handle.variables['lat'][lat_total_value_count-1].item()
-        
-        # Longitude is positive, as it's counted as degrees East
-        lon_total_value_count = len(data_handle.variables['lon'])
-        first_lon = data_handle.variables['lon'][0].item()
-        last_lon = data_handle.variables['lon'][lon_total_value_count-1].item()
-        
-        # Defining the total range of Lat and Lon so that we can then 
-        # find the position of a particular value within those arrays
-        # using numpy.arange()
-        self.logger.info('Storing LAT and LON values for {} in an array'.format(sourcepath))
-        lat_range = np.arange(first_lat,last_lat+0.05,0.05).round(decimals=2)
-        lon_range = np.arange(first_lon,last_lon+0.05,0.05).round(decimals=2)
-        
+        # Storing the pointer to the data and the year in a dict
         data_dict = {
-            
-            "value_array": value_array, 
-            "data_year": data_year,
-            "lat_range": lat_range,
-            "lon_range": lon_range
-            
-        }    
-        
-        # Closing the file now that we have extracted the data we wanted
-        # so as to save RAM
-        data_handle.close()
+            "value_array": DS_data_handle, 
+            "data_year": data_year,            
+        }
         
         # returning our dictionary with relevant values
         return data_dict
@@ -308,78 +281,57 @@ class SILO():
                     
         progressbar.close()
 
-    def get_values_from_array(self, lat, lon, lat_range, lon_range, value_array, file_year, variable_short_name):
-       
+    def get_values_from_array(self, lat, lon, value_array, file_year, variable_short_name):
+        # This function will use xarray to extract a slice of time data for a combination
+        # of lat and lon values
+
         # Checking if this is a leap-year  
         if (( file_year%400 == 0) or (( file_year%4 == 0 ) and ( file_year%100 != 0))):
-            year = np.arange(0,366,1)
+            days = np.arange(0,366,1)
         else: 
-            year = np.arange(0,365,1)
-          
-        data_values = []
-        lon_values = []
-          
-        lat_position_in_array = np.argwhere(lat_range == lat).item()
-        lon_position_in_array = np.argwhere(lon_range == lon).item()
-      
-        for day in year:
-            # let's retrieve the specific data value first
-            val = value_array[day][lat_position_in_array][lon_position_in_array]
+            days = np.arange(0,365,1)
 
-            if type(val) is not np.ma.core.MaskedConstant:
-                val = round(val,1)
-                # if the value is NOT "masked" then we have an actual value
-                # (as opposed to a "null") and we will append it to the data_values list
-                data_values.append(val)
-              
-            else:
-                # if the value is "masked" then it's non-existent. 
-                # If you want to append a NaN ("None") value to the final df
-                # please uncomment the below. Otherwise it is ignored.
-                
-                # data_values.append(None)
-                
-                # Ignoring anything without a value
-                pass
+        # Using a list comprehension to capture all daily values for the given year and lat/lon combinations
+        # We round values to a single decimal
+        data_values = [np.round(x, decimals=1) for x in value_array[variable_short_name].sel(lat=lat, lon=lon).values]
 
+        # We have captured all 365 or 366 values, however, they could all be NaN (non existent)
+        # If this is the case, skip it
+        # NOTE: we could have filtered this in the list comprehension above, however
+        # we chose to do it here for code readability
+        data_values = [x for x in data_values if np.isnan(x) != True]
 
         # we need to get the total amount of values collected
-        # if there was "NO" data available for a particular combination
-        # of lat & lon, then the total_values collected should equal "0"
-        # meaning: there was no data for that point in the grid.
+        # if there was "NO" data available for all days under a particular combination
+        # of lat & lon, then the total values collected should equal "0"
+        # (meaning, there was no data for that point in the grid)
         # If this is the case, then the function will simply return with
         # a "no_values"
-        total_values = len(data_values)
-        if total_values == 0:
+        if len(data_values) == 0:
             raise ValueError('No data for the lat & lon combination provided')
       
-        # let's now create a numpy array containing the "latitude" value
-        # that we are pivoting off of in this loop iteration. The same value
-        # should be repeated as many times as "lon" values there are (841)
-        lat_values = np.full(total_values, lat)
-
-        # let's do the same as above but for the "longitude" dimension
-        lon_values = np.full(total_values, lon)
-
         # now we need to fill a PANDAS DataFrame with the lists we've been 
         # compiling.
         # Uncomment below if you want to also get lat and lon values in output df
         '''
+        lat_values = np.full(total_values, lat)
+        lon_values = np.full(total_values, lon)
         pandas_dict_of_items = {'lat': lat_values,
                                 'lon': lon_values,
                                 'day': year,
                                 'rain': data_values}
         '''
 
-        pandas_dict_of_items = {'day': year,
+        pandas_dict_of_items = {'days': days,
                                 variable_short_name: data_values}
       
         df = pd.DataFrame.from_dict(pandas_dict_of_items)
         
         # making the julian day match the expected
-        df['day'] += 1
+        df['days'] += 1
         
         # adding a column with the "year" to the df
+        # so as to prepare it for export to other formats (CSV, MET, etc.)
         df.insert(0, 'year', file_year)
       
         return df
@@ -403,8 +355,11 @@ class SILO():
         # all data for a given year
         yearly_df = pd.DataFrame()
 
+        # for TQDM
+        total_work_units = len(year_range) * len(lat_range) * len(lon_range)
+
         # Loading and/or Downloading the files
-        for year in year_range:
+        for year in tqdm(year_range, desc="Year"):
 
             self.logger.info('Processing data for year {}'.format(year))
 
@@ -432,7 +387,7 @@ class SILO():
             # Each year-lat-lon matrix generates a different file
             self.logger.info('Iterating over Lat and Lon value combinations')
             
-            for lat in lat_range:
+            for lat in tqdm(lat_range, desc="Latitude"):
 
                 for lon in lon_range:
 
@@ -445,12 +400,10 @@ class SILO():
                     # that particular lat & long combination). If it does return
                     # with an error, we skip this loop and don't produce any output files
                 
-                    try: 
-                        temp_df = self.get_values_from_array(lat, lon, data['lat_range'], data['lon_range'], data['value_array'], file_year, variable_short_name)
+                    try:
+                        yearly_values_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, variable_short_name)
                     except ValueError:
                         pass
-
-                    yearly_df = yearly_df.append(temp_df, ignore_index=True)
                     
                     # Should we generate any file output?
                     if output_to_file == True:
@@ -459,7 +412,7 @@ class SILO():
 
                             if outputdir.is_dir() == True:
                                 metfile_name = '{}-{}-{}.met'.format(variable_short_name,lat,lon)
-                                self.logger.info('Writting MET file {} to {}'.format(metfile_name, output_dir))
+                                self.logger.debug('Writting MET file {} to {}'.format(metfile_name, output_dir))
                         
                         # Should we output using CSV file format?
                         elif output_format == "CSV":
@@ -471,14 +424,9 @@ class SILO():
 
                             if outputdir.is_dir() == True:
                                 csv_file_name = '{}-{}.{}-{}.csv'.format(variable_short_name, file_year, lat, lon)
-                                self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-                                yearly_df.to_csv(csv_file_name, sep=',', index=False, mode="a")
+                                self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
+                                yearly_values_df.to_csv(csv_file_name, sep=',', index=False, mode='a', float_format='%.1f')
 
-                    # when we get out of this Longitude leaf node, we would have
-                    # completed the iteration for the first year-lat-lon combination, 
-                    # we will have a df containing either 365 or 366 rows, we need to
-                    # "reset" the yearly_df back to zero so we can process the next matrix
-                    yearly_df = pd.DataFrame()
 
 def main():
   # Instantiating the arguments class
@@ -492,7 +440,7 @@ def main():
   try:
     import coloredlogs
     logger = logging.getLogger('POPBEAST')
-    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
+    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="INFO", logger=logger)
     
   except ModuleNotFoundError:
     logger = logging.getLogger('POPBEAST')

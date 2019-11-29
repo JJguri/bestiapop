@@ -1,8 +1,10 @@
 # platform: win-64
 
 coloredlogs>=10.0
-dask>=1.1.4
-netCDF4>=1.4.2
+#dask>=1.1.4
+#netCDF4>=1.4.2
 numpy>=1.16.2
 pandas>=0.24.2
 requests>=2.21.0
+tqdm>=4.39.0
+xarray>=0.14.0
