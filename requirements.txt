@@ -2,7 +2,8 @@
 
 coloredlogs>=10.0
 #dask>=1.1.4
-netCDF4>=1.4.2
+#netCDF4>=1.4.2
+h5netcdf>=0.7.4
 numpy>=1.16.2
 pandas>=0.24.2
 requests>=2.21.0

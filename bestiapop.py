@@ -17,16 +17,16 @@
 
 import argparse
 import calendar
+import h5netcdf
 import logging
 import numpy as np
 import pandas as pd
 import requests
 import os
+import s3fs
 import sys
 import time
 import xarray as xr
-#from dask import array as da
-#from dask.diagnostics import ProgressBar
 from datetime import datetime as datetime
 from numpy import array
 from pathlib import Path
@@ -41,7 +41,7 @@ class Arguments():
 
         self.parser.add_argument(
             "-a", "--action",
-            help="The type of operation to want to perform: download-silo-file (it will only download a particular SILO file from S3), convert-nc4-to-met (it will only convert a file from NC4 format to MET), download-and-convert-to-met (combines the first two actions)",
+            help="The type of operation to want to perform: download-silo-file (it will only download a particular SILO file from S3 to your local disk), convert-nc4-to-met (it will only convert a local or S3 file from NC4 format to MET), convert-nc4-to-csv(it will only convert a local or S3 file from NC4 format to CSV), download-and-convert-to-met (combines the first two actions)",
             type=str,
             choices=["download-silo-file", "convert-nc4-to-met", "convert-nc4-to-csv", "download-and-convert-to-met"],
             default="convert-nc4-to-csv",
@@ -58,9 +58,8 @@ class Arguments():
 
         self.parser.add_argument(
             "-c", "--climate-variable",
-            help="The climate variable you want to download data for. To see all variables: https://www.longpaddock.qld.gov.au/silo/about/climate-variables/",
+            help="The climate variable you want to download data for. To see all variables: https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. You can also specify multiple variables separating them with spaces, example: ""daily_rain radiation min_temp max_temp""",
             type=str,
-            choices=["max_temp", "min_temp", "radiation", "daily_rain", "monthly_rain", "vp", "vp_deficit", "evap_pan", "evap_syn", "evap_comb", "evap_morton_lake", "rh_tmax", "rh_tmin", "et_short_crop", "et_tall_crop", "et_morton_actual", "et_morton_potential", "et_morton_wet", "mslp"],
             default="daily_rain",
             required=True
             )
@@ -81,8 +80,16 @@ class Arguments():
             )
 
         self.parser.add_argument(
+            "-i", "--input-path",
+            help="For ""convert-nc4-to-met"" and ""convert-nc4-to-csv"", the file or folder that will be ingested as input in order to extract the specified data. Example: -i ""C:\\some\\folder\\2015.daily_rain.nc"". When NOT specified, the tool assumes it needs to get the data from the cloud.",
+            type=str,
+            default=os.getcwd(),
+            required=True
+            )
+
+        self.parser.add_argument(
             "-o", "--output-directory",
-            help="This argument is required and represents the directory that we will use to: \n (a) stage the netCDF4 files as well as save any output (MET, CSV, etc.) or \n (b) collect any .nc files when you have already downloaded them for conversion to CSV or MET. If no folder is passed in, the current directory is assumed to the right directory. Examples: \n (1) Process all files within the folder: -o ""C:\\some\\folder\\path"" \n (2) Process a single file: -o ""C:\\some\\folder\\2015.daily_rain.nc""",
+            help="This argument is required and represents the directory that we will use to: (a) stage the netCDF4 files as well as save any output (MET, CSV, etc.) or (b) collect any .nc files when you have already downloaded them for conversion to CSV or MET. If no folder is passed in, the current directory is assumed to the right directory. Examples: (1) download files to a local disk: -o ""C:\\some\\folder\\path""",
             type=str,
             default=os.getcwd(),
             required=True
@@ -200,18 +207,27 @@ class SILO():
                                         output_to_file=True,
                                         output_format="MET")
 
-    def load_cdf_file(self, sourcepath, data_category):
+    def load_cdf_file(self, sourcepath, data_category, load_from_s3=True, year=None):
 
-        # This function loads the ".nc" file using the netCDF4 library and
-        # stores a pointer to it in the "data" variable
+        # This function loads the ".nc" file using the xarray library and
+        # stores a pointer to it in "data_dict"
+
+        # Let's first check whether a source file was passed in, otherwise
+        # assume we need to fetch from the cloud
+        if load_from_s3 == True:
+            silo_file = "silo-open-data/annual/{}/{}.{}.nc".format(data_category, year, data_category)
+            fs_s3 = s3fs.S3FileSystem(anon=True)
+            remote_file_obj = fs_s3.open(file, mode='rb')
+            DS_data_handle = xr.open_dataset(remote_file_obj, engine='h5netcdf')
         
-        # This function expects that we will pass the value series
-        # we are looking for in the "data_category" parameter
-        # So if we want the function to return all values for 
-        # rain we shall call the function as:
-        # load_file(sourcepath, sourcefile, 'daily_rain')
-        self.logger.info('Loading netCDF4 file {}'.format(sourcepath))
-        DS_data_handle = xr.open_dataset(sourcepath)
+        else:
+            # This function expects that we will pass the value series
+            # we are looking for in the "data_category" parameter
+            # So if we want the function to return all values for 
+            # rain we shall call the function as:
+            # load_file(sourcepath, sourcefile, 'daily_rain')
+            self.logger.info('Loading netCDF4 file {}'.format(sourcepath))
+            DS_data_handle = xr.open_dataset(sourcepath)
         
         # Extracting the "year" from within the file itself.
         # For this we get a sample of the values and then 
@@ -335,7 +351,7 @@ class SILO():
       
         return df
 
-    def generate_silo_dataframe(self, year_range, variable_short_name, lat_range, lon_range, outputdir, download_files=False, output_to_file=True, output_format="CSV"):
+    def generate_silo_dataframe(self, year_range, variable_short_name, lat_range, lon_range, outputdir, download_files=False, load_from_s3=True, output_to_file=True, output_format="CSV"):
 
         '''
         Creation of the DataFrame and Files
@@ -368,19 +384,24 @@ class SILO():
                 self.download_file_from_silo_s3(year, variable_short_name, outputdir)
 
             # Opening the target CDF database
-            # We need to check whether we were passed a directory with multiple files inside
+            # We need to check:
+            # (1) should we fetch the data directly from AWS S3 buckets
+            # (2) if files should be fetched locally, whether the user passed a directory with multiple files inside
             # or a single file to process.
-            if outputdir.is_dir() == True:
-                sourcefile = str(year) + "." + variable_short_name + ".nc"
-                sourcepath = outputdir/sourcefile
-            elif outputdir.is_file() == True:
-                sourcepath = outputdir
+            if load_from_s3 == True:
+                data = self.load_cdf_file(None, variable_short_name, load_from_s3=True, year=year)
+            else:
+                if outputdir.is_dir() == True:
+                    sourcefile = str(year) + "." + variable_short_name + ".nc"
+                    sourcepath = outputdir/sourcefile
+                elif outputdir.is_file() == True:
+                    sourcepath = outputdir
 
-            if sourcepath.exists() == False:
-                self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the output directory. Skipping...'.format(sourcepath))
-                continue
+                if sourcepath.exists() == False:
+                    self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the output directory. Skipping...'.format(sourcepath))
+                    continue
 
-            data = self.load_cdf_file(sourcepath, variable_short_name)
+                data = self.load_cdf_file(sourcepath, variable_short_name)
         
             # Now iterating over lat and lon combinations
             # Each year-lat-lon matrix generates a different file
@@ -460,7 +481,7 @@ def main():
   logger.info("Starting POPBEAST Climate Automation Framework")
   
   # Grab an instance of the SILO class
-  silo_instance = SILO(logger, pargs.output_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
+  silo_instance = SILO(logger, pargs.output_directory, pargs.input_path, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
   # Start to process the records
   silo_instance.process_records(pargs.action)
     
