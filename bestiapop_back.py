@@ -217,7 +217,7 @@ class SILO():
                                         outputdir=self.outputdir,
                                         download_files=False,
                                         output_to_file=True,
-                                        output_format="MET")
+                                        output_format="CSV")
 
     def load_cdf_file(self, sourcepath, data_category, load_from_s3=True, year=None):
 
@@ -386,43 +386,43 @@ class SILO():
         total_work_units = len(year_range) * len(lat_range) * len(lon_range)
 
         # Loading and/or Downloading the files
-        for year in tqdm(year_range, desc="Year"):
+        for climate_variable in tqdm(variable_short_name, desc="Climate Variable"):
+
+            for year in tqdm(year_range, desc="Year"):
+
+                self.logger.info('Processing data for year {}'.format(year))
+
+                # should we download the file first?
+                if download_files == True:
+                    self.logger.debug('Attempting to download files')
+                    self.download_file_from_silo_s3(year, climate_variable, outputdir)
+
+                # Opening the target CDF database
+                # We need to check:
+                # (1) should we fetch the data directly from AWS S3 buckets
+                # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
+                if load_from_s3 == True:
+                    data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
+                else:
+                    if outputdir.is_dir() == True:
+                        sourcefile = str(year) + "." + climate_variable + ".nc"
+                        sourcepath = outputdir/sourcefile
+                    elif outputdir.is_file() == True:
+                        sourcepath = outputdir
+
+                    if sourcepath.exists() == False:
+                        self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
+                        continue
+
+                    data = self.load_cdf_file(sourcepath, climate_variable)
             
-            for lat in tqdm(lat_range, desc="Latitude"):
+                # Now iterating over lat and lon combinations
+                # Each year-lat-lon matrix generates a different file
+                self.logger.info('Iterating over Lat and Lon value combinations')
+                
+                for lat in tqdm(lat_range, desc="Latitude"):
 
-                for lon in lon_range:
-
-                    for climate_variable in tqdm(variable_short_name, desc="Climate Variable"):
-
-                        self.logger.info('Processing data for variable {} - year {} - lat {} - lon {}'.format(climate_variable, year, lat, lon))
-
-                        # should we download the file first?
-                        if download_files == True:
-                            self.logger.debug('Attempting to download files')
-                            self.download_file_from_silo_s3(year, climate_variable, outputdir)
-
-                        # Opening the target CDF database
-                        # We need to check:
-                        # (1) should we fetch the data directly from AWS S3 buckets
-                        # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
-                        if load_from_s3 == True:
-                            data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
-                        else:
-                            if outputdir.is_dir() == True:
-                                sourcefile = str(year) + "." + climate_variable + ".nc"
-                                sourcepath = outputdir/sourcefile
-                            elif outputdir.is_file() == True:
-                                sourcepath = outputdir
-
-                            if sourcepath.exists() == False:
-                                self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
-                                continue
-
-                            data = self.load_cdf_file(sourcepath, climate_variable)
-                    
-                        # Now iterating over lat and lon combinations
-                        # Each year-lat-lon matrix generates a different file
-                        self.logger.info('Iterating over Lat and Lon value combinations')
+                    for lon in lon_range:
 
                         file_year = data['data_year']
 
@@ -434,7 +434,7 @@ class SILO():
                         # with an error, we skip this loop and don't produce any output files
                     
                         try:
-                            year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
+                            yearly_values_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
 
                             # check if the selected action was to generate a final met file
                             # we need to combine the values of all the climate variables first
@@ -444,10 +444,10 @@ class SILO():
                                 # test if met_df is empty, if so, we need to initialize it with first climate
                                 # variable data
                                 if met_df.empty == True:
-                                    met_df = year_lat_lon_df
+                                    met_df = yearly_values_df
                                 else:
-                                    differential_cols = year_lat_lon_df.columns.difference(met_df.columns)
-                                    met_df = pd.merge(met_df, year_lat_lon_df[differential_cols], left_index=True, right_index=True, how='outer')
+                                    differential_cols = yearly_values_df.columns.difference(met_df.columns)
+                                    met_df = pd.merge(met_df, yearly_values_df[differential_cols], left_index=True, right_index=True, how='outer')
                                 continue
 
                         except ValueError:
@@ -455,9 +455,15 @@ class SILO():
                         
                         # Should we generate any file output?
                         if output_to_file == True:
-                              
+                            # Should we output using MET file format?
+                            if output_format == "MET":
+
+                                if outputdir.is_dir() == True:
+                                    metfile_name = '{}-{}-{}.met'.format(climate_variable,lat,lon)
+                                    self.logger.debug('Writting MET file {} to {}'.format(metfile_name, outputdir))
+                                    
                             # Should we output using CSV file format?
-                            if output_format == "CSV":
+                            elif output_format == "CSV":
                                 # let's build the name of the file based on the value of the 
                                 # first row for latitude, the first row for longitude and then 
                                 # the year (obtained from the name of the file with file_year = int(sourcefile[:4]))
@@ -468,20 +474,15 @@ class SILO():
                                     csv_file_name = '{}-{}.{}-{}.csv'.format(climate_variable, file_year, lat, lon)
                                     self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
                                     full_output_path = outputdir/csv_file_name
-                                    year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
+                                    yearly_values_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
                         
-                        # "reset" the year_lat_lon_df back to zero.
-                        year_lat_lon_df = pd.DataFrame()
+                        # "reset" the yearly_values_df back to zero.
+                        yearly_values_df = pd.DataFrame()
 
-                    # Should we output using MET file format?
-                    if output_format == "MET":
-                        met_file_name = met_file_name = '{}-{}.{}-{}.met'.format(climate_variable, file_year, lat, lon)
-                        self.logger.info('Writting MET file {} to {}'.format(met_file_name, outputdir))
-                        full_output_path = outputdir/met_file_name
-                        met_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
-                    
-                    # "reset" the met_df back to zero.
-                    met_df = pd.DataFrame()
+        csv_file_name = 'zzzz.csv'
+        self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
+        full_output_path = outputdir/csv_file_name
+        met_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
 
 
 def main():

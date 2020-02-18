@@ -1,3 +1,4 @@
 # Do not log vscode configuration
 .vscode
 settings.json
+test/*
