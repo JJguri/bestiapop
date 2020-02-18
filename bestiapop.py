@@ -28,6 +28,7 @@ import sys
 import time
 import xarray as xr
 from datetime import datetime as datetime
+from jinja2 import Template
 from numpy import array
 from pathlib import Path
 from tqdm import tqdm
@@ -59,7 +60,7 @@ class Arguments():
         self.parser.add_argument(
             "-c", "--climate-variable",
             help="The climate variable you want to download data for. To see all variables: https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. You can also specify multiple variables separating them with spaces, example: ""daily_rain radiation min_temp max_temp""",
-            type=self.climate_variable_list,
+            type=self.string_variable_list,
             default="daily_rain",
             required=True
             )
@@ -67,7 +68,7 @@ class Arguments():
         self.parser.add_argument(
             "-lat", "--latitude-range",
             help="The latitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lat ""-40.85 -40.90"" \n -lat ""30.10 33"" \n -lat -41",
-            type=self.csv_list,
+            type=self.int_variable_list,
             default=None,
             required=False
             )
@@ -75,7 +76,7 @@ class Arguments():
         self.parser.add_argument(
             "-lon", "--longitude-range",
             help="The longitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lon ""145.45 145.5"" \n -lon ""145.10 146"" \n -lon 145",
-            type=self.csv_list,
+            type=self.int_variable_list,
             required=False
             )
 
@@ -97,7 +98,7 @@ class Arguments():
 
         self.pargs = self.parser.parse_args()
 
-    def csv_list(self, string):
+    def int_variable_list(self, string):
         # Adding our own parser for comma separated values
         # since Argparse interprets them as multiple values and complains
         if " " in string:
@@ -105,7 +106,7 @@ class Arguments():
         else:
             return [float(string)]
 
-    def climate_variable_list(self, string):
+    def string_variable_list(self, string):
         # Adding our own parser for comma separated values
         # since Argparse interprets them as multiple values and complains
         if " " in string:
@@ -372,7 +373,7 @@ class SILO():
         We will iterate through each "latitude" value and, 
         within this loop, we will iterate through all the different 
         "longitude" values for a given year. Results for each year
-        are collected inside the "met_df" with "met_df.append"
+        are collected inside the "yearly_met_df" with "yearly_met_df.append"
         At the end, it will output a file with all the contents if
         "output_to_file=True" (by default it is "True")
         '''
@@ -380,18 +381,30 @@ class SILO():
 
         # let's first create an empty df to store 
         # all data for a given year
-        met_df = pd.DataFrame()
+        yearly_met_df = pd.DataFrame()
+        all_years_met_df = pd.DataFrame()
 
-        # for TQDM
-        total_work_units = len(year_range) * len(lat_range) * len(lon_range)
+        # setting up Jinja2 Template for final MET file if required
+        met_file_j2_template = '''
+            [weather.met.weather]
+            !station number={{ lat }}-{{ lon }}
+            Latitude={{ lat }}
+            Longitude={{ lon }}
+            tav={{ tav }}
+            amp={{ amp }}
+
+            year day radn maxt mint rain
+            () () (MJ^m2) (oC) (oC) (mm)
+            {{ data }}
+        '''
 
         # Loading and/or Downloading the files
-        for year in tqdm(year_range, desc="Year"):
-            
-            for lat in tqdm(lat_range, desc="Latitude"):
+        for lat in tqdm(lat_range, desc="Latitude"):    
 
-                for lon in lon_range:
+            for lon in tqdm(lon_range, desc="Longitude"):
 
+                for year in tqdm(year_range, desc="Year"):
+                
                     for climate_variable in tqdm(variable_short_name, desc="Climate Variable"):
 
                         self.logger.info('Processing data for variable {} - year {} - lat {} - lon {}'.format(climate_variable, year, lat, lon))
@@ -406,6 +419,7 @@ class SILO():
                         # (1) should we fetch the data directly from AWS S3 buckets
                         # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
                         if load_from_s3 == True:
+                            self.logger.info('Fetching remote NetCDF file for {}'.format(climate_variable))
                             data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
                         else:
                             if outputdir.is_dir() == True:
@@ -417,12 +431,9 @@ class SILO():
                             if sourcepath.exists() == False:
                                 self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
                                 continue
-
+                            
+                            self.logger.info('Fetching data from local NetCDF file {}'.format(sourcepath))
                             data = self.load_cdf_file(sourcepath, climate_variable)
-                    
-                        # Now iterating over lat and lon combinations
-                        # Each year-lat-lon matrix generates a different file
-                        self.logger.info('Iterating over Lat and Lon value combinations')
 
                         file_year = data['data_year']
 
@@ -435,29 +446,30 @@ class SILO():
                     
                         try:
                             year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
-
-                            # check if the selected action was to generate a final met file
-                            # we need to combine the values of all the climate variables first
-                            # before generating the final MET
-                            if self.action == "generate-met-file":
-
-                                # test if met_df is empty, if so, we need to initialize it with first climate
-                                # variable data
-                                if met_df.empty == True:
-                                    met_df = year_lat_lon_df
-                                else:
-                                    differential_cols = year_lat_lon_df.columns.difference(met_df.columns)
-                                    met_df = pd.merge(met_df, year_lat_lon_df[differential_cols], left_index=True, right_index=True, how='outer')
-                                continue
-
                         except ValueError:
                             continue
                         
                         # Should we generate any file output?
                         if output_to_file == True:
+
+                            if output_format == "MET":
+
+                                # check if the selected action was to generate a final met file
+                                # we need to combine the values of all the climate variables first
+                                # before generating the final MET
+                                if self.action == "generate-met-file":
+
+                                    # test if yearly_met_df is empty, if so, we need to initialize it with first climate
+                                    # variable data
+                                    if yearly_met_df.empty == True:
+                                        yearly_met_df = year_lat_lon_df
+                                    else:
+                                        # grab columns present in year_lat_lon_df that are not in yearly_met_df yet
+                                        differential_cols = year_lat_lon_df.columns.difference(yearly_met_df.columns)
+                                        yearly_met_df = pd.merge(yearly_met_df, year_lat_lon_df[differential_cols], left_index=True, right_index=True, how='outer')
                               
                             # Should we output using CSV file format?
-                            if output_format == "CSV":
+                            elif output_format == "CSV":
                                 # let's build the name of the file based on the value of the 
                                 # first row for latitude, the first row for longitude and then 
                                 # the year (obtained from the name of the file with file_year = int(sourcefile[:4]))
@@ -472,17 +484,32 @@ class SILO():
                         
                         # "reset" the year_lat_lon_df back to zero.
                         year_lat_lon_df = pd.DataFrame()
-
-                    # Should we output using MET file format?
-                    if output_format == "MET":
-                        met_file_name = met_file_name = '{}-{}.{}-{}.met'.format(climate_variable, file_year, lat, lon)
-                        self.logger.info('Writting MET file {} to {}'.format(met_file_name, outputdir))
-                        full_output_path = outputdir/met_file_name
-                        met_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
                     
-                    # "reset" the met_df back to zero.
-                    met_df = pd.DataFrame()
+                    ## DEBUG - ERASE
+                    print(yearly_met_df)
+                    ## End of climate_variable loop
+                    self.logger.info('Finished CLIMATE VARIABLE Loop for Year {}'.format(year))
+                    # (1) append the yearly_met_df that contains all variable values
+                    # for a particular year to the all_years_met_df
+                    # (2) "reset" the yearly_met_df back to zero.
+                    all_years_met_df = all_years_met_df.append(yearly_met_df, ignore_index=True)
+                    yearly_met_df = pd.DataFrame()
 
+                self.logger.info('Finished YEAR Loop for Year {}'.format(year))
+                ## End of year loop
+
+                # Should we output to a file using MET file format?
+                if output_format == "MET":
+                    met_file_name = met_file_name = '{}-{}.met'.format(lat, lon)
+                    self.logger.info('Writting MET file {} to {}'.format(met_file_name, outputdir))
+                    full_output_path = outputdir/met_file_name
+                    all_years_met_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
+                    # reset all_years_met_df back to zero.
+                    all_years_met_df = pd.DataFrame()
+                
+            ## End of lon loop
+
+         ## End of lat loop
 
 def main():
   # Instantiating the arguments class
