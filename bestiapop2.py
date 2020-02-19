@@ -67,7 +67,7 @@ class Arguments():
         self.parser.add_argument(
             "-lat", "--latitude-range",
             help="The latitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lat ""-40.85 -40.90"" \n -lat ""30.10 33"" \n -lat -41",
-            type=self.int_variable_list,
+            type=self.csv_list,
             default=None,
             required=False
             )
@@ -75,7 +75,7 @@ class Arguments():
         self.parser.add_argument(
             "-lon", "--longitude-range",
             help="The longitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lon ""145.45 145.5"" \n -lon ""145.10 146"" \n -lon 145",
-            type=self.int_variable_list,
+            type=self.csv_list,
             required=False
             )
 
@@ -97,7 +97,7 @@ class Arguments():
 
         self.pargs = self.parser.parse_args()
 
-    def int_variable_list(self, string):
+    def csv_list(self, string):
         # Adding our own parser for comma separated values
         # since Argparse interprets them as multiple values and complains
         if " " in string:
@@ -340,13 +340,14 @@ class SILO():
         # now we need to fill a PANDAS DataFrame with the lists we've been 
         # compiling.
         # Uncomment below if you want to also get lat and lon values in output df
+        
         '''
-        lat_values = np.full(total_values, lat)
-        lon_values = np.full(total_values, lon)
+        lat_values = np.full(data_values, lat)
+        lon_values = np.full(data_values, lon)
         pandas_dict_of_items = {'lat': lat_values,
                                 'lon': lon_values,
-                                'day': year,
-                                'rain': data_values}
+                                'days': days,
+                                variable_short_name: data_values}
         '''
 
         pandas_dict_of_items = {'days': days,
@@ -360,6 +361,8 @@ class SILO():
         # adding a column with the "year" to the df
         # so as to prepare it for export to other formats (CSV, MET, etc.)
         df.insert(0, 'year', file_year)
+        df.insert(0, 'lat', lat)
+        df.insert(0, 'lon', lon)
       
         return df
 
@@ -379,14 +382,20 @@ class SILO():
         self.logger.debug('Generating DataFrames')
 
         # let's first create an empty df to store 
-        # all data for a given year
+        # all data for a given variable-year-lat-lon combination
         met_df = pd.DataFrame()
 
-        # for TQDM
-        total_work_units = len(year_range) * len(lat_range) * len(lon_range)
+        # empty df to append all the met_df to
+        total_met_df = pd.DataFrame()
+
+        # DEBUG - ERASE
+        for y in year_range:
+            print(y)
 
         # Loading and/or Downloading the files
         for climate_variable in tqdm(variable_short_name, desc="Climate Variable"):
+
+            self.logger.info('Processing data for variable {}'.format(climate_variable))
 
             for year in tqdm(year_range, desc="Year"):
 
@@ -418,15 +427,16 @@ class SILO():
             
                 # Now iterating over lat and lon combinations
                 # Each year-lat-lon matrix generates a different file
-                self.logger.info('Iterating over Lat and Lon value combinations')
                 
                 for lat in tqdm(lat_range, desc="Latitude"):
+                    self.logger.info('Processing data for lat {}'.format(lat))
 
                     for lon in lon_range:
+                        self.logger.info('Processing data for lon {}'.format(lon))
 
                         file_year = data['data_year']
 
-                        self.logger.debug('Processing {} --> Lat {} - Lon {} for year {}'.format(climate_variable, lat, lon, file_year))
+                        self.logger.info('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, file_year))
 
                         # here we are checking whether the get_values_from_cdf function
                         # returns with a ValueError (meaning there were no values for
@@ -435,21 +445,6 @@ class SILO():
                     
                         try:
                             lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
-
-                            # check if the selected action was to generate a final met file
-                            # we need to combine the values of all the climate variables first
-                            # before generating the final MET
-                            if self.action == "generate-met-file":
-
-                                # test if met_df is empty, if so, we need to initialize it with first climate
-                                # variable data
-                                if met_df.empty == True:
-                                    met_df = lon_df
-                                else:
-                                    differential_cols = lon_df.columns.difference(met_df.columns)
-                                    met_df = pd.merge(met_df, lon_df[differential_cols], left_index=True, right_index=True, how='outer')
-                                continue
-
                         except ValueError:
                             continue
                         
@@ -477,12 +472,24 @@ class SILO():
                                     lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
                         
                         # "reset" the lon_df back to zero.
+                        total_met_df = total_met_df.append(lon_df)
                         lon_df = pd.DataFrame()
+                        
+
+                    # Before ending this lat loop, must append df to lat_df
+                    #if self.action == "generate-met-file":
+                    #    differential_cols = lon_df.columns.difference(met_df.columns)
+                    #    met_df = pd.merge(met_df, lon_df[differential_cols], left_index=True, right_index=True, how='outer')
+                    print(total_met_df)
+                print(total_met_df)
+            print(total_met_df)
+        print(total_met_df)
+
 
         csv_file_name = 'zzzz.csv'
         self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
         full_output_path = outputdir/csv_file_name
-        met_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
+        total_met_df.to_csv(full_output_path, sep=',', na_rep="NaN", index=False, mode='a', float_format='%.1f')
 
 
 def main():

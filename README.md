@@ -45,12 +45,12 @@ python bestiapop.py -a download-silo-file -y 2015 -c daily_rain -o C:\some\outpu
 python bestiapop.py -a convert-nc4-to-csv -y 2015 -c daily_rain -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\folder
 ```
 
-#### Generate CSV output files for Min Temperature, Radiation and Daily Rain
+#### Generate MET output files for Min Temperature, Radiation and Daily Rain for years 2015 to 2016
 
 Note: the resulting csv files will be placed in the output directory specified by "-o"
 
 ```powershell
-python bestiapop.py -a convert-nc4-to-csv -y 2015 -c "daily_rain min_temp radiation" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder
+python bestiapop.py -a generate-met-file -y "2015-2016" -c "daily_rain min_temp radiation" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder
 ```
 
 ## References
