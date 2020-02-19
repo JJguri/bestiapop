@@ -393,11 +393,11 @@ class SILO():
             print(y)
 
         # Loading and/or Downloading the files
-        for climate_variable in tqdm(variable_short_name, desc="Climate Variable"):
+        for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
 
             self.logger.info('Processing data for variable {}'.format(climate_variable))
 
-            for year in tqdm(year_range, desc="Year"):
+            for year in tqdm(year_range, ascii=True, desc="Year"):
 
                 self.logger.info('Processing data for year {}'.format(year))
 
@@ -428,7 +428,7 @@ class SILO():
                 # Now iterating over lat and lon combinations
                 # Each year-lat-lon matrix generates a different file
                 
-                for lat in tqdm(lat_range, desc="Latitude"):
+                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
                     self.logger.info('Processing data for lat {}'.format(lat))
 
                     for lon in lon_range:
