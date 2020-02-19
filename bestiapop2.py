@@ -444,7 +444,7 @@ class SILO():
                         # with an error, we skip this loop and don't produce any output files
                     
                         try:
-                            lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
+                            var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
                         except ValueError:
                             continue
                         
@@ -469,24 +469,25 @@ class SILO():
                                     csv_file_name = '{}-{}.{}-{}.csv'.format(climate_variable, file_year, lat, lon)
                                     self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
                                     full_output_path = outputdir/csv_file_name
-                                    lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
+                                    var_year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
                         
-                        # "reset" the lon_df back to zero.
-                        total_met_df = total_met_df.append(lon_df)
-                        lon_df = pd.DataFrame()
+                        # "reset" the var_year_lat_lon_df back to zero.
+                        total_met_df = total_met_df.append(var_year_lat_lon_df)
+                        var_year_lat_lon_df = pd.DataFrame()
                         
 
                     # Before ending this lat loop, must append df to lat_df
                     #if self.action == "generate-met-file":
-                    #    differential_cols = lon_df.columns.difference(met_df.columns)
-                    #    met_df = pd.merge(met_df, lon_df[differential_cols], left_index=True, right_index=True, how='outer')
-                    print(total_met_df)
-                print(total_met_df)
-            print(total_met_df)
+                    #    differential_cols = var_year_lat_lon_df.columns.difference(met_df.columns)
+                    #    met_df = pd.merge(met_df, var_year_lat_lon_df[differential_cols], left_index=True, right_index=True, how='outer')
+                    #print(total_met_df)
+                #print(total_met_df)
+           # print(total_met_df)
         print(total_met_df)
 
-
-        csv_file_name = 'zzzz.csv'
+        # Creating final file
+        # for the moment just a CSV
+        csv_file_name = 'mega_data_frame.csv'
         self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
         full_output_path = outputdir/csv_file_name
         total_met_df.to_csv(full_output_path, sep=',', na_rep="NaN", index=False, mode='a', float_format='%.1f')
