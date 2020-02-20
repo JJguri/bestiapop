@@ -180,10 +180,6 @@ class SILO():
 
         # Validate input directory
         # TODO
-        # DEBUG - ERASE
-        print(self.lon_range)
-        print(self.lat_range)
-        #sys.exit()
 
         # Validate output directory
         if self.outputdir.is_dir() == True:
@@ -228,7 +224,7 @@ class SILO():
                                         lon_range=self.lon_range,
                                         outputdir=self.outputdir,
                                         download_files=False,
-                                        output_to_file=False,
+                                        output_to_file=True,
                                         output_format="MET")
 
     def load_cdf_file(self, sourcepath, data_category, load_from_s3=True, year=None):
@@ -403,13 +399,13 @@ class SILO():
         total_met_df = pd.DataFrame()
 
         # Loading and/or Downloading the files
-        for climate_variable in tqdm(variable_short_name, desc="Climate Variable"):
+        for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
 
-            self.logger.info('Processing data for variable {}'.format(climate_variable))
+            self.logger.debug('Processing data for variable {}'.format(climate_variable))
 
-            for year in tqdm(year_range, desc="Year"):
+            for year in tqdm(year_range, ascii=True, desc="Year"):
 
-                self.logger.info('Processing data for year {}'.format(year))
+                self.logger.debug('Processing data for year {}'.format(year))
 
                 # should we download the file first?
                 if download_files == True:
@@ -438,15 +434,13 @@ class SILO():
                 # Now iterating over lat and lon combinations
                 # Each year-lat-lon matrix generates a different file
                 
-                for lat in tqdm(lat_range, desc="Latitude"):
-                    self.logger.info('Processing data for lat {}'.format(lat))
+                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
 
                     for lon in lon_range:
-                        self.logger.info('Processing data for lon {}'.format(lon))
 
                         file_year = data['data_year']
 
-                        self.logger.info('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, file_year))
+                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, file_year))
 
                         # here we are checking whether the get_values_from_cdf function
                         # returns with a ValueError (meaning there were no values for
@@ -482,31 +476,43 @@ class SILO():
         # Should we generate any file output for this var-year-lat-lon iteration?
         if output_to_file == True:
             if output_format == "MET":
-                # generate_met(total_met_df)
-            # Creating final file
-            # for the moment just a CSV
-            csv_file_name = 'mega_data_frame.csv'
-            self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-            full_output_path = outputdir/csv_file_name
-            total_met_df.to_csv(full_output_path, sep=',', na_rep="NaN", index=False, mode='w', float_format='%.2f')
 
-    def generate_met(self, met_dataframe, lat, lon):
+                #Rename variables
+                total_met_df = total_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+                total_met_df = total_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
+                
+                self.logger.info("Proceeding to the generation of MET files")
+                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+                    for lon in tqdm(lon_range, ascii=True, desc="Latitude"):
+                        met_slice_df = total_met_df[(total_met_df.lon == lon) & (total_met_df.lat == lat)]
+                        del met_slice_df['lat']
+                        del met_slice_df['lon']
+                        self.generate_met(outputdir, met_slice_df, lat, lon)
+            
+            generate_final_csv = True
+            if generate_final_csv == True:
+                # Creating final CSV file
+                csv_file_name = 'mega_final_data_frame.csv'
+                self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
+                full_output_path = outputdir/csv_file_name
+                total_met_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
+
+    def generate_met(self, outputdir, met_dataframe, lat, lon):
 
         # Creating final MET file
 
-        # setting up Jinja2 Template for final MET file if required
-        met_file_j2_template = 
-        '''
-        [weather.met.weather]
-        !station number={{ lat }}-{{ lon }}
-        Latitude={{ lat }}
-        Longitude={{ lon }}
-        tav={{ tav }}
-        amp={{ amp }}
+        # Setting up Jinja2 Template for final MET file if required
+        # Text alignment looks weird here but it must be left this way for proper output
+        met_file_j2_template = '''[weather.met.weather]
+!station number={{ lat }}-{{ lon }}
+Latitude={{ lat }}
+Longitude={{ lon }}
+tav={{ tav }}
+amp={{ amp }}
 
-        year day radn maxt mint rain
-        () () (MJ^m2) (oC) (oC) (mm)
-        {{ vardata }}
+year day radn maxt mint rain
+() () (MJ^m2) (oC) (oC) (mm)
+{{ vardata }}
         '''
 
         j2_template = Template(met_file_j2_template)
@@ -526,16 +532,16 @@ class SILO():
         
         # Calculate here the tav, amp values
         # TODO
-        # Grab lat and lon, any row will do since they should all be the same
+        tav="test"
+        amp="test"
         
         in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, vardata=met_df_text_output)
+        df_output_buffer.close()
 
-
-        csv_file_name = 'mega_data_frame.csv'
-        self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-        full_output_path = outputdir/csv_file_name
-        total_met_df.to_csv(full_output_path, sep=',', na_rep="NaN", index=False, mode='w', float_format='%.2f')
-
+        full_output_path = outputdir/'{}-{}.met'.format(lat, lon)
+        with open(full_output_path, 'w+') as f:
+            self.logger.info('Writting MET file {}'.format(full_output_path))
+            f.write(in_memory_met)
 
 def main():
   # Instantiating the arguments class
