@@ -28,6 +28,7 @@ import sys
 import time
 import xarray as xr
 from datetime import datetime as datetime
+from jinja2 import Template
 from numpy import array
 from pathlib import Path
 from tqdm import tqdm
@@ -172,6 +173,10 @@ class SILO():
 
         # Validate input directory
         # TODO
+        # DEBUG - ERASE
+        print(self.lon_range)
+        print(self.lat_range)
+        #sys.exit()
 
         # Validate output directory
         if self.outputdir.is_dir() == True:
@@ -335,6 +340,8 @@ class SILO():
         # If this is the case, then the function will simply return with
         # a "no_values"
         if len(data_values) == 0:
+            # DEBUG - ERASE
+            print("THERE ARE NO VALUES FOR LAT {} LON {} VARIABLE {}".format(lat, lon, variable_short_name))
             raise ValueError('No data for the lat & lon combination provided')
       
         # now we need to fill a PANDAS DataFrame with the lists we've been 
@@ -388,9 +395,20 @@ class SILO():
         # empty df to append all the met_df to
         total_met_df = pd.DataFrame()
 
-        # DEBUG - ERASE
-        for y in year_range:
-            print(y)
+        
+        # setting up Jinja2 Template for final MET file if required
+        met_file_j2_template = '''
+            [weather.met.weather]
+            !station number={{ lat }}-{{ lon }}
+            Latitude={{ lat }}
+            Longitude={{ lon }}
+            tav={{ tav }}
+            amp={{ amp }}
+
+            year day radn maxt mint rain
+            () () (MJ^m2) (oC) (oC) (mm)
+            {{ data }}
+        '''
 
         # Loading and/or Downloading the files
         for climate_variable in tqdm(variable_short_name, desc="Climate Variable"):
@@ -469,7 +487,7 @@ class SILO():
                                     csv_file_name = '{}-{}.{}-{}.csv'.format(climate_variable, file_year, lat, lon)
                                     self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
                                     full_output_path = outputdir/csv_file_name
-                                    var_year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.1f')
+                                    var_year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.2f')
                         
                         # "reset" the var_year_lat_lon_df back to zero.
                         total_met_df = total_met_df.append(var_year_lat_lon_df)
@@ -490,14 +508,13 @@ class SILO():
         csv_file_name = 'mega_data_frame.csv'
         self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
         full_output_path = outputdir/csv_file_name
-        total_met_df.to_csv(full_output_path, sep=',', na_rep="NaN", index=False, mode='a', float_format='%.1f')
+        total_met_df.to_csv(full_output_path, sep=',', na_rep="NaN", index=False, mode='a', float_format='%.2f')
 
 
 def main():
   # Instantiating the arguments class
   args = Arguments(sys.argv)
   pargs = args.get_args()
-  print(pargs.latitude_range)
 
   # Setup logging
   # We need to pass the "logger" to any Classes or Modules that may use it 
