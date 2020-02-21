@@ -522,8 +522,6 @@ year day radn maxt mint rain
 
         # Save data to a buffer (same as with a regular file but in-memory):
         met_dataframe.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.2f')
-        #met_dataframe.to_csv(".\\test\mierda_df.csv", sep=",", na_rep="NaN", index=False, mode='w', float_format='%.2f')
-        #sys.exit()
 
         # Get values from buffer
         # Go back to position 0 to read from buffer
@@ -534,28 +532,8 @@ year day radn maxt mint rain
         
         # Calculate here the tav, amp values
         # TODO
-        # Calculate amp
-
-        # Get the months as a column
-        met_dataframe['cte'] = 1997364
-        met_dataframe['day2'] = met_dataframe['day']+met_dataframe['cte']
-        met_dataframe['date'] = (pd.to_datetime((met_dataframe.day2 // 1000)) + pd.to_timedelta(met_dataframe.day2 % 1000, unit='D'))
-        met_dataframe['month'] = met_dataframe.date.dt.month
-        month=met_dataframe.loc[:,'month']
-
-        met_dataframe['tmean'] = met_dataframe[['maxt', 'mint']].mean(axis=1)
-        tmeanbymonth = met_dataframe.groupby(month)[["tmean"]].mean()
-        maxmaxtbymonth = tmeanbymonth.loc[tmeanbymonth['tmean'].idxmax()].round(decimals=5)
-        minmaxtbymonth = tmeanbymonth.loc[tmeanbymonth['tmean'].idxmin()].round(decimals=5)
-        amp = maxmaxtbymonth-minmaxtbymonth
-        amp = list(amp)[0]
-
-        # Calculate tav
-        tav = tmeanbymonth.groupby(month)[["tmean"]].mean().round(decimals=5).iloc[0]['tmean']
-        #tav = tmeanbymonth
-
-        print(amp)
-        print(tav)
+        tav="test"
+        amp="test"
         
         in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, vardata=met_df_text_output)
         df_output_buffer.close()
