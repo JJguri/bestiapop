@@ -47,7 +47,8 @@ python bestiapop.py -a convert-nc4-to-csv -y 2015 -c daily_rain -lat "-41.15 -41
 
 #### Generate MET output files for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
 
-Note: the resulting csv files will be placed in the output directory specified by "-o"
+Note: the resulting MET files will be placed in the output directory specified by "-o"
+Note: add -ou csv at the end of the script if a csv is required as output file. The code generates MET files by default.
 
 ```powershell
 python bestiapop.py -a generate-met-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder
