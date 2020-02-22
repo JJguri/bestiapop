@@ -16,6 +16,7 @@
     v1.6 - Implemented data read directly from the Cloud (AWS S3) for faster data loads, improved speed x15
     v2.0 - Collection of all variable combinations in final dataframe. Obtaining pseudo-MET df from final df.
     v2.1 - Generating final MET file
+    v2.2 - Adding commandline parameter to allow for the selection of output type: either MET or CSV
     
  TODO:
     1. Implement a new functionality in APSIM that automatically executes this code by only providing lat and lon values (and generating a MET)
@@ -49,7 +50,7 @@ class Arguments():
 
     def __init__(self, args):
         self.parser = argparse.ArgumentParser(
-            description="SILO Climate Data Extractor"
+            description="Bestiapop Climate Data Extractor"
             )
 
         self.parser.add_argument(
@@ -108,6 +109,15 @@ class Arguments():
             required=True
             )
 
+        self.parser.add_argument(
+            "-ot", "--output-type",
+            help="This argument will tell the script whether you want the output file to be in CSV or MET format",
+            type=str,
+            choices=["met", "csv"],
+            default="met",
+            required=False
+            )
+
         self.pargs = self.parser.parse_args()
 
     def csv_list(self, string):
@@ -131,13 +141,14 @@ class Arguments():
 
 class SILO():
 
-    def __init__(self, logger, action, outputpath, inputpath, variable_short_name, year_range, lat_range, lon_range):
+    def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range):
 
         # Initializing variables
         self.action = action
         self.logger = logger
         self.logger.info('Initializing {}'.format(__name__))
         self.outputdir = Path(outputpath)
+        self.output_type = output_type
         self.variable_short_name = variable_short_name
         
         # Check whether a year range with "-" was provided for the year.
@@ -221,7 +232,7 @@ class SILO():
                                         output_format="CSV")
 
         elif action == "generate-met-file":
-            self.logger.info('Downloading data and converting to MET format')
+            self.logger.info('Downloading data and converting to {} format'.format(self.output_type))
             # 1. Let's invoke generate_climate_dataframe with the appropriate options
             self.generate_climate_dataframe(year_range=self.year_range,
                                         variable_short_name=self.variable_short_name, 
@@ -480,22 +491,32 @@ class SILO():
 
         # Should we generate any file output for this var-year-lat-lon iteration?
         if output_to_file == True:
-            if output_format == "MET":
+            
+            #Rename variables
+            total_met_df = total_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+            total_met_df = total_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
+            
+            self.logger.info("Proceeding to the generation of MET files")
 
-                #Rename variables
-                total_met_df = total_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
-                total_met_df = total_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
+            for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
                 
-                self.logger.info("Proceeding to the generation of MET files")
-                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
-                    for lon in tqdm(lon_range, ascii=True, desc="Latitude"):
-                        met_slice_df = total_met_df[(total_met_df.lon == lon) & (total_met_df.lat == lat)]
-                        del met_slice_df['lat']
-                        del met_slice_df['lon']
-                        self.generate_met(outputdir, met_slice_df, lat, lon)
-                        met_slice_df = pd.DataFrame()
+                for lon in tqdm(lon_range, ascii=True, desc="Latitude"):
 
-            generate_final_csv = True
+                    met_slice_df = total_met_df[(total_met_df.lon == lon) & (total_met_df.lat == lat)]
+                    del met_slice_df['lat']
+                    del met_slice_df['lon']
+
+                    if self.output_type == "met":
+                        self.generate_met(outputdir, met_slice_df, lat, lon)
+                    
+                    elif self.output_type == "csv":
+                        full_output_path = outputdir/'{}-{}.csv'.format(lat, lon)
+                        met_slice_df.to_csv(full_output_path, sep=",", index=False, mode='w', float_format='%.2f')
+
+                    else:
+                        log.info("Output not yet implemented")
+
+            generate_final_csv = False
             if generate_final_csv == True:
                 # Creating final CSV file
                 csv_file_name = 'mega_final_data_frame.csv'
@@ -528,8 +549,6 @@ year day radn maxt mint rain
 
         # Save data to a buffer (same as with a regular file but in-memory):
         met_dataframe.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
-        #met_dataframe.to_csv(".\\test\mierda_df.csv", sep=",", na_rep="NaN", index=False, mode='w', float_format='%.2f')
-        #sys.exit()
 
         # Get values from buffer
         # Go back to position 0 to read from buffer
@@ -595,7 +614,7 @@ def main():
   logger.info("Starting POPBEAST Climate Automation Framework")
   
   # Grab an instance of the SILO class
-  silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.input_path, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
+  silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.output_type, pargs.input_path, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
   # Start to process the records
   silo_instance.process_records(pargs.action)
     
