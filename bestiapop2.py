@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 '''
- NAME: POPBEAST SILO CLIMATE EXCTRACTOR
+ NAME: POPBEAST
  VERSION: 2.1
- AUTHOR: Diego Perez (@darkquasar) - Jonathan Ojeda () - 
- DESCRIPTION: Main module that automates the download of data from APSIM and subsequent transformations into MET files
+ MAIN DEVELOPER: Diego Perez (@darkquassar) 
+ DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
+ DESCRIPTION: A python package to automatically generate gridded climate data for APSIM (to be extended for any crop models)
  
  HISTORY: 
     v0.1 - Created python file
@@ -14,10 +15,14 @@
     v1.5 - Discarded netCDF4 python package in favor of h5netcdf and xarray for faster slice reads
     v1.6 - Implemented data read directly from the Cloud (AWS S3) for faster data loads, improved speed x15
     v2.0 - Collection of all variable combinations in final dataframe. Obtaining pseudo-MET df from final df.
-    v2.1 - TBD
+    v2.1 - Generating final MET file
     
  TODO:
-    1. Use AutoComplete package to help in commandline params: https://github.com/kislyuk/argcomplete.
+    1. Implement a new functionality in APSIM that automatically executes this code by only providing lat and lon values (and generating a MET)
+    2. Use AutoComplete package to help in commandline params: https://github.com/kislyuk/argcomplete.
+    3. Allow for the extraction of climate data from any other gridded climate data source as long as it is encoded in NETCDF4. Example: allowing the user to pass a parameter for the cloud (S3 or other) location of their data
+    4. Extend output formats to generate input climate data for other crop models (DSSAT, STICS)
+    5. Implement MultiProcessing to allow for the parallelization of workloads
 
 '''
 
@@ -205,8 +210,8 @@ class SILO():
 
         elif action == "convert-nc4-to-csv":
             self.logger.info('Converting files to CSV format')
-            # 1. Let's invoke generate_silo_dataframe with the appropriate options
-            self.generate_silo_dataframe(year_range=self.year_range,
+            # 1. Let's invoke generate_climate_dataframe with the appropriate options
+            self.generate_climate_dataframe(year_range=self.year_range,
                                         variable_short_name=self.variable_short_name, 
                                         lat_range=self.lat_range,
                                         lon_range=self.lon_range,
@@ -217,8 +222,8 @@ class SILO():
 
         elif action == "generate-met-file":
             self.logger.info('Downloading data and converting to MET format')
-            # 1. Let's invoke generate_silo_dataframe with the appropriate options
-            self.generate_silo_dataframe(year_range=self.year_range,
+            # 1. Let's invoke generate_climate_dataframe with the appropriate options
+            self.generate_climate_dataframe(year_range=self.year_range,
                                         variable_short_name=self.variable_short_name, 
                                         lat_range=self.lat_range,
                                         lon_range=self.lon_range,
@@ -376,7 +381,7 @@ class SILO():
       
         return df
 
-    def generate_silo_dataframe(self, year_range, variable_short_name, lat_range, lon_range, outputdir, download_files=False, load_from_s3=True, output_to_file=True, output_format="CSV"):
+    def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, outputdir, download_files=False, load_from_s3=True, output_to_file=True, output_format="CSV"):
 
         '''
         Creation of the DataFrame and Files
@@ -488,7 +493,8 @@ class SILO():
                         del met_slice_df['lat']
                         del met_slice_df['lon']
                         self.generate_met(outputdir, met_slice_df, lat, lon)
-            
+                        met_slice_df = pd.DataFrame()
+
             generate_final_csv = True
             if generate_final_csv == True:
                 # Creating final CSV file
@@ -521,7 +527,7 @@ year day radn maxt mint rain
         df_output_buffer = io.StringIO()
 
         # Save data to a buffer (same as with a regular file but in-memory):
-        met_dataframe.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.2f')
+        met_dataframe.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
         #met_dataframe.to_csv(".\\test\mierda_df.csv", sep=",", na_rep="NaN", index=False, mode='w', float_format='%.2f')
         #sys.exit()
 
@@ -551,11 +557,7 @@ year day radn maxt mint rain
         amp = list(amp)[0]
 
         # Calculate tav
-        tav = tmeanbymonth.groupby(month)[["tmean"]].mean().round(decimals=5).iloc[0]['tmean']
-        #tav = tmeanbymonth
-
-        print(amp)
-        print(tav)
+        tav = tmeanbymonth.mean().tmean.round(decimals=5)
         
         in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, vardata=met_df_text_output)
         df_output_buffer.close()
