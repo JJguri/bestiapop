@@ -1,6 +1,7 @@
 # bestiapop
 
-Repository to hold gridded data for input climate files automation to be used for crop models
+- Repository to hold gridded data for input climate files automation to be used for crop models.
+- Although the code is downloading data from SILO (https://www.longpaddock.qld.gov.au/silo/gridded-data/), it could be applied to other climate data sources. So far, the code is producing csv or MET files to be used by APSIM (https://www.apsim.info/), however, it also could be applied to produce input climate data for other crop models such as DSSAT and STICS.
 
 ## Installation
 
@@ -31,7 +32,7 @@ This option might take a *very* long time due to the multiple dependencies that 
 
 ### Examples
 
-#### Download a SILO file for year 2015 and the daily_rain variable
+#### Download a SILO climate file for year 2015 and the daily_rain variable
 
 This command will **only** download the file from AWS, it won't do any further processing.
 
