@@ -1,0 +1,7 @@
+Issues to solve:
+-some problem with years after 2016. The code stop although it is not providing an error
+-for some reason, in some files (only some of them) the amp values have more than 5 decimals (only for amp, not for tav).
+-when the lat and lon is in the sea, the code stops, withouth any warning. It is not providing outputs for those cases.
+-the code is not working for other variables. Check name of variables and head, because it was not created for additional variables.
+-For this combination -lat "-41.4 -41.35" -lon "147.35 147.4", the code is just creating 2 files, i.e. it is just considering
+the first latitude value, not both. However, it is considering both latitude values.
