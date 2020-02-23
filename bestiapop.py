@@ -3,10 +3,13 @@
 '''
  NAME: POPBEAST
  VERSION: 2.1
- MAIN DEVELOPER: Diego Perez (@darkquassar) 
+ DATA ANALYTICS SPECIALIST - CORE CODE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
  DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
  DESCRIPTION: A python package to automatically generate gridded climate data for APSIM (to be extended for any crop models)
- 
+ PAPERS OR PROJECTS USING THIS CODE: 
+    1. ASDFDS
+    2. 
+
  HISTORY: 
     v0.1 - Created python file
     v0.2 - Added numpy series extraction
@@ -134,7 +137,7 @@ class Arguments():
         if " " in string:
             return [str(x) for x in string.split()]
         else:
-            return [str(string)]
+            return string
 
     def get_args(self):
         return self.pargs
@@ -255,6 +258,7 @@ class SILO():
             fs_s3 = s3fs.S3FileSystem(anon=True)
             remote_file_obj = fs_s3.open(silo_file, mode='rb')
             DS_data_handle = xr.open_dataset(remote_file_obj, engine='h5netcdf')
+            self.logger.debug('Loaded netCDF4 file {} from Amazon S3'.format(silo_file))
         
         else:
             # This function expects that we will pass the value series
@@ -310,6 +314,7 @@ class SILO():
                             total=total_file_size,
                             initial=first_byte,
                             unit='B',
+                            ascii=True,
                             unit_scale=True,
                             desc=url.split('/')[-1])
         
@@ -333,8 +338,7 @@ class SILO():
         progressbar.close()
 
     def get_values_from_array(self, lat, lon, value_array, file_year, variable_short_name):
-        # This function will use xarray to extract a slice of time data for a combination
-        # of lat and lon values
+        # This function will use xarray to extract a slice of time data for a combination of lat and lon values
 
         # Checking if this is a leap-year  
         if (( file_year%400 == 0) or (( file_year%4 == 0 ) and ( file_year%100 != 0))):
@@ -344,6 +348,7 @@ class SILO():
 
         # Using a list comprehension to capture all daily values for the given year and lat/lon combinations
         # We round values to a single decimal
+        self.logger.debug("Reading array data with xarray")
         data_values = [np.round(x, decimals=1) for x in value_array[variable_short_name].sel(lat=lat, lon=lon).values]
 
         # We have captured all 365 or 366 values, however, they could all be NaN (non existent)
@@ -363,19 +368,7 @@ class SILO():
             print("THERE ARE NO VALUES FOR LAT {} LON {} VARIABLE {}".format(lat, lon, variable_short_name))
             raise ValueError('No data for the lat & lon combination provided')
       
-        # now we need to fill a PANDAS DataFrame with the lists we've been 
-        # compiling.
-        # Uncomment below if you want to also get lat and lon values in output df
-        
-        '''
-        lat_values = np.full(data_values, lat)
-        lon_values = np.full(data_values, lon)
-        pandas_dict_of_items = {'lat': lat_values,
-                                'lon': lon_values,
-                                'days': days,
-                                variable_short_name: data_values}
-        '''
-
+        # now we need to fill a PANDAS DataFrame with the lists we've been collecting
         pandas_dict_of_items = {'days': days,
                                 variable_short_name: data_values}
       
@@ -514,7 +507,7 @@ class SILO():
                         met_slice_df.to_csv(full_output_path, sep=",", index=False, mode='w', float_format='%.2f')
 
                     else:
-                        log.info("Output not yet implemented")
+                        self.logger.info("Output not yet implemented")
 
             generate_final_csv = False
             if generate_final_csv == True:
@@ -597,7 +590,7 @@ def main():
   try:
     import coloredlogs
     logger = logging.getLogger('POPBEAST')
-    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="INFO", logger=logger)
+    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
     
   except ModuleNotFoundError:
     logger = logging.getLogger('POPBEAST')
