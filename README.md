@@ -1,6 +1,6 @@
-# ClimateDataAutomation
+# bestiapop
 
-Repository to hold climate data for APSIMX automation
+Repository to hold gridded data for input climate files automation to be used for crop models
 
 ## Installation
 
