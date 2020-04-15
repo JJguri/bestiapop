@@ -3,6 +3,9 @@
 - Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. While point data is currently available in a readily APSIM format, gridded data is storage in NetCDF files which are difficult to storage and convert to an input file readable by APSIM or other crop models. We developed bestiapop, a Python package which allows model users to automatically download SILO's (Scientific Information for Land Owners) gridded climate data in an APSIM format. The package offers the possibility to select a range of grids (5 km × 5 km resolution) and years producing a file with climate data available at SILO. 
 - Although the code is downloading data from SILO (https://www.longpaddock.qld.gov.au/silo/gridded-data/), it could be applied to other climate data sources. So far, the code is producing csv or MET files to be used by APSIM (https://www.apsim.info/), however, it also could be applied to produce input climate data for other crop models such as DSSAT and STICS.
 
+## More information
+https://www.jojeda.com/project/project-6/
+
 ## Installation
 
 1. Clone this repo
