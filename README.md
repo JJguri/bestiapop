@@ -1,9 +1,11 @@
-# bestiapop
+# BestiaPop: A python script for climate data extraction and processing
 
-- Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. While point data is currently available in a readily APSIM format, gridded data is storage in NetCDF files which are difficult to storage and convert to an input file readable by APSIM or other crop models. We developed bestiapop, a Python package which allows model users to automatically download SILO's (Scientific Information for Land Owners) gridded climate data in an APSIM format. The package offers the possibility to select a range of grids (5 km × 5 km resolution) and years producing a file with climate data available at SILO. 
-- Although the code is downloading data from SILO (https://www.longpaddock.qld.gov.au/silo/gridded-data/), it could be applied to other climate data sources. So far, the code is producing csv or MET files to be used by APSIM (https://www.apsim.info/), however, it also could be applied to produce input climate data for other crop models such as DSSAT and STICS.
+Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. While *point* data is currently available in MET format, gridded data is provided in NetCDF file format which is difficult to store and convert to an input file readable by [APSIM](https://www.apsim.info) or other crop models. We developed **bestiapop** (a spanish word that translates to *pop beast*), a Python script (*soon to become a package*) which allows model users to automatically download SILO's (Scientific Information for Land Owners) gridded climate data in MET file format that can then be consumed by APSIM for **crop modelling predictions**. The package offers the possibility to select a range of grids (5 km × 5 km resolution) and years producing various types of output files: csv, APSIM and soon TSV and SQLite.
 
-## More information
+Although the code downloads data from SILO (https://www.longpaddock.qld.gov.au/silo/gridded-data/), it could be applied to other climate data sources. So far, the code is producing CSV or MET files to be used by APSIM (https://www.apsim.info/), however, it also could be applied to produce input climate data for other crop models such as DSSAT and STICS.
+
+### More information
+
 https://www.jojeda.com/project/project-6/
 
 ## Installation
