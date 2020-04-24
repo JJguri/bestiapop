@@ -4,6 +4,12 @@ Climate data is an essential input for crop models to predict crop growth and de
 
 Although the code downloads data from SILO (https://www.longpaddock.qld.gov.au/silo/gridded-data/), it could be applied to other climate data sources. So far, the code is producing CSV or MET files to be used by APSIM (https://www.apsim.info/), however, it also could be applied to produce input climate data for other crop models such as DSSAT and STICS.
 
+### Authors
+
+**Data Analytics Specialist & Code Developer**: Diego Perez (@darkquassar / https://linkedin.com/in/diegope)
+
+**Data Scientist & Model Developer**: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
+
 ### More information
 
 https://www.jojeda.com/project/project-6/
