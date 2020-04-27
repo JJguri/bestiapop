@@ -1,0 +1,11 @@
+[weather.met.weather]
+!station number=-39.75-144.15
+Latitude=-39.75
+Longitude=144.15
+tav=nan
+amp=nan
+
+year day radn maxt mint rain
+() () (MJ^m2) (oC) (oC) (mm)
+
+        
