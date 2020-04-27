@@ -563,10 +563,9 @@ year day radn maxt mint rain
 
         met_dataframe['tmean'] = met_dataframe[['maxt', 'mint']].mean(axis=1)
         tmeanbymonth = met_dataframe.groupby(month)[["tmean"]].mean()
-        maxmaxtbymonth = tmeanbymonth.loc[tmeanbymonth['tmean'].idxmax()].round(decimals=5)
-        minmaxtbymonth = tmeanbymonth.loc[tmeanbymonth['tmean'].idxmin()].round(decimals=5)
-        amp = maxmaxtbymonth-minmaxtbymonth
-        amp = list(amp)[0]
+        maxmaxtbymonth=tmeanbymonth['tmean'].max()
+        minmaxtbymonth=tmeanbymonth['tmean'].min()
+        amp=maxmaxtbymonth-minmaxtbymonth
 
         # Calculate tav
         tav = tmeanbymonth.mean().tmean.round(decimals=5)
