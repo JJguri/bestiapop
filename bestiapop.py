@@ -365,7 +365,7 @@ class SILO():
         # a "no_values"
         if len(data_values) == 0:
             # DEBUG - ERASE
-            print("THERE ARE NO VALUES FOR LAT {} LON {} VARIABLE {}".format(lat, lon, variable_short_name))
+            self.logger.warning("THERE ARE NO VALUES FOR LAT {} LON {} VARIABLE {}".format(lat, lon, variable_short_name))
             raise ValueError('No data for the lat & lon combination provided')
       
         # now we need to fill a PANDAS DataFrame with the lists we've been collecting
@@ -459,6 +459,7 @@ class SILO():
                         try:
                             var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
                         except ValueError:
+                            self.logger.warning("Skipping this Loop since no values were obtained")
                             continue
                         
                         # Should we generate any file output for this var-year-lat-lon iteration?
