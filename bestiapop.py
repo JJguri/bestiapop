@@ -153,6 +153,8 @@ class SILO():
         self.logger.info('Initializing {}'.format(__name__))
         if inputpath:
             self.inputdir = Path(inputpath)
+        else:
+            self.inputdir = None
         self.outputdir = Path(outputpath)
         self.output_type = output_type
         self.variable_short_name = variable_short_name
@@ -251,6 +253,7 @@ class SILO():
                                         output_to_file=True,
                                         output_format="MET")
 
+
     def load_cdf_file(self, sourcepath, data_category, load_from_s3=True, year=None):
 
         # This function loads the ".nc" file using the xarray library and
@@ -259,11 +262,11 @@ class SILO():
         # Let's first check whether a source file was passed in, otherwise
         # assume we need to fetch from the cloud
         if load_from_s3 == True:
-            silo_file = "silo-open-data/annual/{}/{}.{}.nc".format(data_category, year, data_category)
+            self.silo_file = "silo-open-data/annual/{}/{}.{}.nc".format(data_category, year, data_category)
             fs_s3 = s3fs.S3FileSystem(anon=True)
-            remote_file_obj = fs_s3.open(silo_file, mode='rb')
-            da_data_handle = xr.open_dataset(remote_file_obj, engine='h5netcdf')
-            self.logger.debug('Loaded netCDF4 file {} from Amazon S3'.format(silo_file))
+            self.remote_file_obj = fs_s3.open(self.silo_file, mode='rb')
+            da_data_handle = xr.open_dataset(self.remote_file_obj, engine='h5netcdf')
+            self.logger.debug('Loaded netCDF4 file {} from Amazon S3'.format(self.silo_file))
         
         else:
             # This function expects that we will pass the value series
@@ -389,7 +392,10 @@ class SILO():
         df.insert(0, 'year', file_year)
         df.insert(0, 'lat', lat)
         df.insert(0, 'lon', lon)
-      
+
+        # closing handle to xarray DataSet
+        value_array.close()
+   
         return df
 
     def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, inputdir, outputdir, download_files=False, load_from_s3=True, output_to_file=True, output_format="CSV"):
@@ -491,6 +497,11 @@ class SILO():
                         # "reset" the var_year_lat_lon_df back to zero.
                         total_met_df = total_met_df.append(var_year_lat_lon_df)
                         var_year_lat_lon_df = pd.DataFrame()
+
+                # We reached the end of the year loop
+                # we need must close the open handle to the s3fs file to free up resources
+                self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
+                self.remote_file_obj.close()
 
         # Should we generate any file output for this var-year-lat-lon iteration?
         if output_to_file == True:
