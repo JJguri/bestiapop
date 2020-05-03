@@ -59,32 +59,61 @@ This option might take a *very* long time due to the multiple dependencies that 
 2. `conda install --name bestiapop -y -c conda-forge --file requirements.txt`
 3. `conda activate bestiapop`
 
-## Usage
+# Usage
 
-### Examples
+## Examples
 
-#### Download a SILO climate file for year 2015 and the daily_rain variable
+### Download SILO climate files for years 2010 to 1028 and the variables daily_rain and max_temp
 
-This command will **only** download the file from AWS, it won't do any further processing.
+This command will **only** download the file from AWS, it won't perform any further processing.
+**NOTE**: *a year range must be separated by a dash, whereas multiple climate variables are separated by spaces*
 
 ```powershell
-python bestiapop.py -a download-silo-file -y 2015 -c daily_rain -o C:\some\output\folder
+python bestiapop.py -a download-silo-file -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 ```
 
-#### Process file 2015.daily_rain.nc for a range of lat/lon
+### Process file 2015.daily_rain.nc for a range of lat/lon
 
 ```powershell
 python bestiapop.py -a convert-nc4-to-csv -y 2015 -c daily_rain -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\folder
 ```
 
-#### Generate MET output files for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+### Generate MET output files from AWS S3 for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
 
-Note: the resulting MET files will be placed in the output directory specified by "-o"
+**Note**:
 
-Note: add "-ou csv" at the end of the script if a csv is required as output file. The code generates MET files by default.
+* the resulting MET files will be placed in the output directory specified by "-o"
+* add *-ou csv* at the end of the script if a csv is required as output file. The code generates MET files by default.
 
 ```powershell
-python bestiapop.py -a generate-met-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder
+python bestiapop.py -a generate-met-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\
+```
+
+### Generate MET output files from Local Disk for Radiation, Min Temperature, Max Temperature and Daily Rain for years 1990 to 2010
+
+**Note**:
+
+* all the required NetCDF files should be placed in a single directory which is then referenced with the *--input* parameter. The directory should have the following structure:
+
+```c
+C:\input\folder:
+    \__ 1990.daily_rain.nc
+    \__ 1990.max_temp.nc
+    \__ 1990.min_temp.nc
+    \__ 1990.radiation.nc
+    \__ 1991.daily_rain.nc
+    \__ 1991.max_temp.nc
+    \__ 1991.min_temp.nc
+    \__ 1991.radiation.nc
+    \__ ...
+    \__ 2010.daily_rain.nc
+    \__ 2010.max_temp.nc
+    \__ 2010.min_temp.nc
+    \__ 2010.radiation.nc
+```
+
+```powershell
+python bestiapop.py -a generate-met-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -o C:\some\output\folder\
 ```
 
 ## Main References (The following papers implemented this code and can be used as references)

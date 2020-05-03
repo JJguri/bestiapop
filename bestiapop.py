@@ -35,6 +35,7 @@ import calendar
 import h5netcdf
 import io
 import logging
+#import netCDF4
 import numpy as np
 import pandas as pd
 import requests
@@ -76,7 +77,7 @@ class Arguments():
         self.parser.add_argument(
             "-c", "--climate-variable",
             help="The climate variable you want to download data for. To see all variables: https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. You can also specify multiple variables separating them with spaces, example: ""daily_rain radiation min_temp max_temp""",
-            type=self.climate_variable_list,
+            type=self.space_separated_list,
             default="daily_rain",
             required=True
             )
@@ -84,7 +85,7 @@ class Arguments():
         self.parser.add_argument(
             "-lat", "--latitude-range",
             help="The latitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lat ""-40.85 -40.90"" \n -lat ""30.10 33"" \n -lat -41",
-            type=self.csv_list,
+            type=self.space_separated_list_float,
             default=None,
             required=False
             )
@@ -92,7 +93,7 @@ class Arguments():
         self.parser.add_argument(
             "-lon", "--longitude-range",
             help="The longitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lon ""145.45 145.5"" \n -lon ""145.10 146"" \n -lon 145",
-            type=self.csv_list,
+            type=self.space_separated_list_float,
             required=False
             )
 
@@ -100,7 +101,7 @@ class Arguments():
             "-i", "--input-path",
             help="For ""convert-nc4-to-met"" and ""convert-nc4-to-csv"", the file or folder that will be ingested as input in order to extract the specified data. Example: -i ""C:\\some\\folder\\2015.daily_rain.nc"". When NOT specified, the tool assumes it needs to get the data from the cloud.",
             type=str,
-            default=os.getcwd(),
+            default=None,
             required=False
             )
 
@@ -123,21 +124,21 @@ class Arguments():
 
         self.pargs = self.parser.parse_args()
 
-    def csv_list(self, string):
-        # Adding our own parser for comma separated values
+    def space_separated_list_float(self, string):
+        # Adding our own parser for space separated values
         # since Argparse interprets them as multiple values and complains
         if " " in string:
             return [float(x) for x in string.split()]
         else:
             return [float(string)]
 
-    def climate_variable_list(self, string):
-        # Adding our own parser for comma separated values
+    def space_separated_list(self, string):
+        # Adding our own parser for space separated values
         # since Argparse interprets them as multiple values and complains
         if " " in string:
             return [str(x) for x in string.split()]
         else:
-            return string
+            return [string]
 
     def get_args(self):
         return self.pargs
@@ -150,6 +151,8 @@ class SILO():
         self.action = action
         self.logger = logger
         self.logger.info('Initializing {}'.format(__name__))
+        if inputpath:
+            self.inputdir = Path(inputpath)
         self.outputdir = Path(outputpath)
         self.output_type = output_type
         self.variable_short_name = variable_short_name
@@ -216,8 +219,9 @@ class SILO():
         if action == "download-silo-file":
             self.logger.info('Action {} invoked'.format(action))
             for year in self.year_range:
-                self.logger.info('Downloading SILO file for year {}'.format(year))
-                self.download_file_from_silo_s3(year, self.variable_short_name, self.outputdir)
+                for variable in self.variable_short_name:
+                    self.logger.info('Downloading SILO file for year {}'.format(year))
+                    self.download_file_from_silo_s3(year, variable, self.outputdir)
 
         elif action == "convert-nc4-to-met":
             self.logger.info('Action {} not implemented yet'.format(action))
@@ -241,6 +245,7 @@ class SILO():
                                         variable_short_name=self.variable_short_name, 
                                         lat_range=self.lat_range,
                                         lon_range=self.lon_range,
+                                        inputdir=self.inputdir,
                                         outputdir=self.outputdir,
                                         download_files=False,
                                         output_to_file=True,
@@ -257,7 +262,7 @@ class SILO():
             silo_file = "silo-open-data/annual/{}/{}.{}.nc".format(data_category, year, data_category)
             fs_s3 = s3fs.S3FileSystem(anon=True)
             remote_file_obj = fs_s3.open(silo_file, mode='rb')
-            DS_data_handle = xr.open_dataset(remote_file_obj, engine='h5netcdf')
+            da_data_handle = xr.open_dataset(remote_file_obj, engine='h5netcdf')
             self.logger.debug('Loaded netCDF4 file {} from Amazon S3'.format(silo_file))
         
         else:
@@ -266,20 +271,20 @@ class SILO():
             # So if we want the function to return all values for 
             # rain we shall call the function as:
             # load_file(sourcepath, sourcefile, 'daily_rain')
-            self.logger.info('Loading netCDF4 file {}'.format(sourcepath))
-            DS_data_handle = xr.open_dataset(sourcepath)
+            self.logger.info('Loading netCDF4 file {} from Disk'.format(sourcepath))
+            da_data_handle = xr.open_dataset(sourcepath, engine='h5netcdf')
         
         # Extracting the "year" from within the file itself.
         # For this we get a sample of the values and then 
         # convert the first value to a year. Assuming we are dealing
         # with single year files as per SILO S3 files, this shouldn't
         # represent a problem
-        DS_sample = DS_data_handle.time.head().values[1]
-        data_year = DS_sample.astype('datetime64[Y]').astype(int) + 1970
+        da_sample = da_data_handle.time.head().values[1]
+        data_year = da_sample.astype('datetime64[Y]').astype(int) + 1970
         
         # Storing the pointer to the data and the year in a dict
         data_dict = {
-            "value_array": DS_data_handle, 
+            "value_array": da_data_handle, 
             "data_year": data_year,            
         }
         
@@ -349,6 +354,8 @@ class SILO():
         # Using a list comprehension to capture all daily values for the given year and lat/lon combinations
         # We round values to a single decimal
         self.logger.debug("Reading array data with xarray")
+
+        # Alternatively: data_values = [np.round(x, decimals=1) for x in (value_array[variable_short_name].loc[dict(lat=lat, lon=lon)]).values]
         data_values = [np.round(x, decimals=1) for x in value_array[variable_short_name].sel(lat=lat, lon=lon).values]
 
         # We have captured all 365 or 366 values, however, they could all be NaN (non existent)
@@ -366,8 +373,8 @@ class SILO():
         if len(data_values) == 0:
             # DEBUG - ERASE
             self.logger.warning("THERE ARE NO VALUES FOR LAT {} LON {} VARIABLE {}".format(lat, lon, variable_short_name))
-            raise ValueError('No data for the lat & lon combination provided')
-      
+            raise ValueError('no_data_for_lat_lon')
+
         # now we need to fill a PANDAS DataFrame with the lists we've been collecting
         pandas_dict_of_items = {'days': days,
                                 variable_short_name: data_values}
@@ -385,7 +392,7 @@ class SILO():
       
         return df
 
-    def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, outputdir, download_files=False, load_from_s3=True, output_to_file=True, output_format="CSV"):
+    def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, inputdir, outputdir, download_files=False, load_from_s3=True, output_to_file=True, output_format="CSV"):
 
         '''
         Creation of the DataFrame and Files
@@ -425,20 +432,22 @@ class SILO():
                 # We need to check:
                 # (1) should we fetch the data directly from AWS S3 buckets
                 # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
-                if load_from_s3 == True:
-                    data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
-                else:
-                    if outputdir.is_dir() == True:
+                if inputdir:
+                    if inputdir.is_dir() == True:
                         sourcefile = str(year) + "." + climate_variable + ".nc"
-                        sourcepath = outputdir/sourcefile
-                    elif outputdir.is_file() == True:
-                        sourcepath = outputdir
+                        sourcepath = inputdir/sourcefile
+                    elif inputdir.is_file() == True:
+                        sourcepath = inputdir
 
                     if sourcepath.exists() == False:
                         self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
                         continue
+                    
+                    data = self.load_cdf_file(sourcepath, climate_variable, load_from_s3=False)
 
-                    data = self.load_cdf_file(sourcepath, climate_variable)
+                elif load_from_s3 == True:
+                    data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
+                    
             
                 # Now iterating over lat and lon combinations
                 # Each year-lat-lon matrix generates a different file
@@ -486,7 +495,12 @@ class SILO():
         # Should we generate any file output for this var-year-lat-lon iteration?
         if output_to_file == True:
             
-            #Rename variables
+            # Rename variables
+            # Check if final df is empty, if so, then return and do not proceed with the rest of the file
+            if total_met_df.empty == True:
+                self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
+                return
+
             total_met_df = total_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
             total_met_df = total_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
             
