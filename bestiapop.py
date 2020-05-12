@@ -364,8 +364,12 @@ class SILO():
         # We have captured all 365 or 366 values, however, they could all be NaN (non existent)
         # If this is the case, skip it
         # NOTE: we could have filtered this in the list comprehension above, however
-        # we chose to do it here for code readability
-        data_values = [x for x in data_values if np.isnan(x) != True]
+        # we chose to do it here for code readability.
+        # We assume that, if the first value is "NaN" then the rest of the 364 values will also be null
+        # data_values = [x for x in data_values if np.isnan(x) != True]
+
+        if np.isnan(data_values[1]) == True:
+            data_values = []
 
         # we need to get the total amount of values collected
         # if there was "NO" data available for all days under a particular combination
@@ -419,6 +423,10 @@ class SILO():
 
         # empty df to append all the met_df to
         total_met_df = pd.DataFrame()
+
+        # create an empty list to keep track of lon coordinates
+        # where there are no values
+        empty_lon_coordinates = []
 
         # Loading and/or Downloading the files
         for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
@@ -475,6 +483,9 @@ class SILO():
                             var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
                         except ValueError:
                             self.logger.warning("Skipping this Loop since no values were obtained")
+                            self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
+                            # Append empty lon value to list
+                            empty_lon_coordinates.append(lon)                         
                             continue
                         
                         # Should we generate any file output for this var-year-lat-lon iteration?
@@ -494,14 +505,18 @@ class SILO():
                                     full_output_path = outputdir/csv_file_name
                                     var_year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.2f')
                         
-                        # "reset" the var_year_lat_lon_df back to zero.
+                        # delete the var_year_lat_lon_df back to zero.
                         total_met_df = total_met_df.append(var_year_lat_lon_df)
-                        var_year_lat_lon_df = pd.DataFrame()
+                        del var_year_lat_lon_df
 
                 # We reached the end of the year loop
                 # we need must close the open handle to the s3fs file to free up resources
                 self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
                 self.remote_file_obj.close()
+
+        # Remove any empty lon values from longitude array so as to avoid empty MET generation
+        empty_lon_array = np.array(empty_lon_coordinates)
+        final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
 
         # Should we generate any file output for this var-year-lat-lon iteration?
         if output_to_file == True:
@@ -519,7 +534,7 @@ class SILO():
 
             for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
                 
-                for lon in tqdm(lon_range, ascii=True, desc="Latitude"):
+                for lon in tqdm(final_lon_range, ascii=True, desc="Longitude"):
 
                     met_slice_df = total_met_df[(total_met_df.lon == lon) & (total_met_df.lat == lat)]
                     del met_slice_df['lat']
@@ -534,6 +549,9 @@ class SILO():
 
                     else:
                         self.logger.info("Output not yet implemented")
+
+                    # Delete unused df
+                    del met_slice_df
 
             generate_final_csv = False
             if generate_final_csv == True:
@@ -591,7 +609,7 @@ year day radn maxt mint rain
         tmeanbymonth = met_dataframe.groupby(month)[["tmean"]].mean()
         maxmaxtbymonth=tmeanbymonth['tmean'].max()
         minmaxtbymonth=tmeanbymonth['tmean'].min()
-        amp=maxmaxtbymonth-minmaxtbymonth
+        amp=np.round((maxmaxtbymonth-minmaxtbymonth), decimals=5)
 
         # Calculate tav
         tav = tmeanbymonth.mean().tmean.round(decimals=5)
