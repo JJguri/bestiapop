@@ -522,7 +522,7 @@ class SILO():
                 # we need must close the open handle to the s3fs file to free up resources
                 if load_from_s3 == True:
                     self.remote_file_obj.close()
-                    self.logger.debug("Closed handle to cloud s3fs file {}".format(sourcefile))
+                    self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
 
         # Remove any empty lon values from longitude array so as to avoid empty MET generation
         empty_lon_array = np.array(empty_lon_coordinates)
