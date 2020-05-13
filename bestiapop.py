@@ -447,6 +447,9 @@ class SILO():
                 # (1) should we fetch the data directly from AWS S3 buckets
                 # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
                 if inputdir:
+                    # Setting this variable to false to know how to react at the end of each year loop
+                    load_from_s3 = False
+
                     if inputdir.is_dir() == True:
                         sourcefile = str(year) + "." + climate_variable + ".nc"
                         sourcepath = inputdir/sourcefile
@@ -470,6 +473,12 @@ class SILO():
 
                     for lon in lon_range:
 
+                        # Skipping any longitude points that have already been proven to not contain any data
+                        # This adds a slight performance improvement too
+
+                        if lon in empty_lon_coordinates:
+                            continue
+
                         file_year = data['data_year']
 
                         self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, file_year))
@@ -482,7 +491,7 @@ class SILO():
                         try:
                             var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
                         except ValueError:
-                            self.logger.warning("Skipping this Loop since no values were obtained")
+                            self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
                             self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
                             # Append empty lon value to list
                             empty_lon_coordinates.append(lon)                         
@@ -511,8 +520,9 @@ class SILO():
 
                 # We reached the end of the year loop
                 # we need must close the open handle to the s3fs file to free up resources
-                self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
-                self.remote_file_obj.close()
+                if load_from_s3 == True:
+                    self.remote_file_obj.close()
+                    self.logger.debug("Closed handle to cloud s3fs file {}".format(sourcefile))
 
         # Remove any empty lon values from longitude array so as to avoid empty MET generation
         empty_lon_array = np.array(empty_lon_coordinates)
@@ -527,31 +537,35 @@ class SILO():
                 self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
                 return
 
-            total_met_df = total_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
-            total_met_df = total_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
-            
-            self.logger.info("Proceeding to the generation of MET files")
-
-            for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+            try: 
+                total_met_df = total_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+                total_met_df = total_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
                 
-                for lon in tqdm(final_lon_range, ascii=True, desc="Longitude"):
+                self.logger.info("Proceeding to the generation of MET files")
 
-                    met_slice_df = total_met_df[(total_met_df.lon == lon) & (total_met_df.lat == lat)]
-                    del met_slice_df['lat']
-                    del met_slice_df['lon']
-
-                    if self.output_type == "met":
-                        self.generate_met(outputdir, met_slice_df, lat, lon)
+                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
                     
-                    elif self.output_type == "csv":
-                        full_output_path = outputdir/'{}-{}.csv'.format(lat, lon)
-                        met_slice_df.to_csv(full_output_path, sep=",", index=False, mode='w', float_format='%.2f')
+                    for lon in tqdm(final_lon_range, ascii=True, desc="Longitude"):
 
-                    else:
-                        self.logger.info("Output not yet implemented")
+                        met_slice_df = total_met_df[(total_met_df.lon == lon) & (total_met_df.lat == lat)]
+                        del met_slice_df['lat']
+                        del met_slice_df['lon']
 
-                    # Delete unused df
-                    del met_slice_df
+                        if self.output_type == "met":
+                            self.generate_met(outputdir, met_slice_df, lat, lon)
+                        
+                        elif self.output_type == "csv":
+                            full_output_path = outputdir/'{}-{}.csv'.format(lat, lon)
+                            met_slice_df.to_csv(full_output_path, sep=",", index=False, mode='w', float_format='%.2f')
+
+                        else:
+                            self.logger.info("Output not yet implemented")
+
+                        # Delete unused df
+                        del met_slice_df
+
+            except KeyError as e:
+                self.logger.error("Could not find all required climate variables to generate MET: {}".format(str(e)))
 
             generate_final_csv = False
             if generate_final_csv == True:
