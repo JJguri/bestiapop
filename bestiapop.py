@@ -195,19 +195,10 @@ class SILO():
                 
                 # Check the number spread
                 if int(lat_value_count+1) != len(lat_range):
-                    print("mierda")
                     lat_range = np.arange(first_lat,np.round((last_lat+0.05), decimals=2),0.05).round(decimals=2).tolist()
                     if int(lat_value_count+1) != len(lat_range):
                         # Must get rid of last float
                         lat_range = np.delete(lat_range,(len(lat_range)-1),0)
-                    
-                
-                print("lat_value_count: ", int(lat_value_count))
-                print("lat_range_len: ", len(lat_range))
-                print("first_lat: ", first_lat)
-                print("last_lat: ", last_lat)
-                print("lat_range: ", lat_range)
-
             
             self.lat_range = lat_range
 
@@ -229,23 +220,12 @@ class SILO():
 
                 # Check the number spread
                 if int(lon_value_count+1) != len(lon_range):
-                    print("mierda")
                     lon_range = np.arange(first_lon,np.round((last_lon+0.05), decimals=2),0.05).round(decimals=2).tolist()
                     if int(lat_value_count+1) != len(lat_range):
                         # Must get rid of last float
                         lon_range = np.delete(lon_range,(len(lon_range)-1),0)
-                    
-                
-                print("lon_value_count: ", int(lon_value_count))
-                print("lon_range_len: ", len(lon_range))
-                print("first_lon: ", first_lon)
-                print("last_lon: ", last_lon)
-                print("lon_range: ", lon_range)
-                sys.exit()
 
             self.lon_range = lon_range
-
-        # TODO
 
         # Validate output directory
         if self.outputdir.is_dir() == True:

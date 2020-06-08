@@ -157,7 +157,8 @@ class SILO():
     def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range):
 
         # Initializing variables
-        self.total_parallel_met_df: pd.DataFrame()
+        self.total_parallel_met_df = pd.DataFrame()
+        self.final_parallel_lon_range = np.empty(0)
         self.action = action
         self.logger = logger
         self.logger.info('Initializing {}'.format(__name__))
@@ -204,19 +205,10 @@ class SILO():
                 
                 # Check the number spread
                 if int(lat_value_count+1) != len(lat_range):
-                    print("mierda")
                     lat_range = np.arange(first_lat,np.round((last_lat+0.05), decimals=2),0.05).round(decimals=2).tolist()
                     if int(lat_value_count+1) != len(lat_range):
                         # Must get rid of last float
                         lat_range = np.delete(lat_range,(len(lat_range)-1),0)
-                    
-                
-                print("lat_value_count: ", int(lat_value_count))
-                print("lat_range_len: ", len(lat_range))
-                print("first_lat: ", first_lat)
-                print("last_lat: ", last_lat)
-                print("lat_range: ", lat_range)
-
             
             self.lat_range = lat_range
 
@@ -238,19 +230,10 @@ class SILO():
 
                 # Check the number spread
                 if int(lon_value_count+1) != len(lon_range):
-                    print("mierda")
                     lon_range = np.arange(first_lon,np.round((last_lon+0.05), decimals=2),0.05).round(decimals=2).tolist()
                     if int(lat_value_count+1) != len(lat_range):
                         # Must get rid of last float
                         lon_range = np.delete(lon_range,(len(lon_range)-1),0)
-                    
-                
-                print("lon_value_count: ", int(lon_value_count))
-                print("lon_range_len: ", len(lon_range))
-                print("first_lon: ", first_lon)
-                print("last_lon: ", last_lon)
-                print("lon_range: ", lon_range)
-                sys.exit()
 
             self.lon_range = lon_range
 
@@ -281,16 +264,24 @@ class SILO():
         elif action == "generate-met-file":
             
             worker_pool = mp.Pool(2)
-            workers_result = worker_pool.map_async(self.process_parallel_met, self.year_range)
+            worker_jobs = worker_pool.map_async(self.process_parallel_met, self.year_range)
             worker_pool.close()
-            worker_pool.join()
+            #worker_pool.join()
+
+            while True:
+                if not worker_jobs.ready():
+                    self.logger.info("Parallel Jobs left: {}".format(worker_jobs._number_left))
+                    worker_jobs.wait(10)
+                else:
+                    break
 
             # Generating MET Files
             print("FINAL MET IS: ")
             print(self.total_parallel_met_df)
+            print(self.final_parallel_lon_range)
 
     def process_parallel_met(self, year):
-        year_all_vars_df = self.generate_climate_dataframe(year_range=[year],
+        self.generate_climate_dataframe(year_range=[year],
                                         variable_short_name=self.variable_short_name, 
                                         lat_range=self.lat_range,
                                         lon_range=self.lon_range,
@@ -624,6 +615,7 @@ class SILO():
         # Check if this is a multiprocessing loop
         if output_format == "MultiProcessing":
             self.total_parallel_met_df = self.total_parallel_met_df.append(total_met_df)
+            self.final_parallel_lon_range = self.final_parallel_lon_range.concatenate((self.final_parallel_lon_range, final_lon_range))
             return
 
         # Should we generate any file output for this var-year-lat-lon iteration?
@@ -768,9 +760,10 @@ def main():
   silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.output_type, pargs.input_path, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
   # Start to process the records
   if pargs.multiprocessing == True:
-    silo_instance.process_records(pargs.action, pargs.multiprocessing)
+    logger.info("MultiProcessing selected")
+    silo_instance.process_records_parallel(pargs.action)
   else:
-    silo_instance.process_records(pargs.action, pargs.multiprocessing)
+    silo_instance.process_records(pargs.action)
     
   # Capturing end time for debugging purposes
   et = datetime.now()
