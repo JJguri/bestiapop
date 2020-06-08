@@ -37,6 +37,7 @@ import io
 import logging
 #import netCDF4
 import numpy as np
+import multiprocessing as mp
 import pandas as pd
 import requests
 import os
@@ -107,6 +108,13 @@ class Arguments():
             )
 
         self.parser.add_argument(
+            "-m", "--multiprocessing",
+            help="This switch will enable multiprocessing for enhanced performance and reduce processing times when utilizing multiple cores",
+            action="store_true",
+            required=False
+            )
+
+        self.parser.add_argument(
             "-o", "--output-directory",
             help="This argument is required and represents the directory that we will use to: (a) stage the netCDF4 files as well as save any output (MET, CSV, etc.) or (b) collect any .nc files when you have already downloaded them for conversion to CSV or MET. If no folder is passed in, the current directory is assumed to the right directory. Examples: (1) download files to a local disk: -o ""C:\\some\\folder\\path""",
             type=str,
@@ -149,6 +157,7 @@ class SILO():
     def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range):
 
         # Initializing variables
+        self.total_parallel_met_df: pd.DataFrame()
         self.action = action
         self.logger = logger
         self.logger.info('Initializing {}'.format(__name__))
@@ -257,8 +266,41 @@ class SILO():
         else:
             self.logger.error('{} is not a folder, please provide a folder path'.format(self.outputdir))
             sys.exit(1)
-  
-    def process_records(self, action):
+
+    def process_records_parallel(self, action):
+        # Let's check what's inside the "action" variable and invoke the corresponding function
+        if action == "download-silo-file":
+            self.logger.info("Parallel Computing Not implemented yet")
+
+        elif action == "convert-nc4-to-met":
+            self.logger.info("Parallel Computing Not implemented yet")
+
+        elif action == "convert-nc4-to-csv":
+            self.logger.info("Parallel Computing Not implemented yet")
+
+        elif action == "generate-met-file":
+            
+            worker_pool = mp.Pool(2)
+            workers_result = worker_pool.map_async(self.process_parallel_met, self.year_range)
+            worker_pool.close()
+            worker_pool.join()
+
+            # Generating MET Files
+            print("FINAL MET IS: ")
+            print(self.total_parallel_met_df)
+
+    def process_parallel_met(self, year):
+        year_all_vars_df = self.generate_climate_dataframe(year_range=[year],
+                                        variable_short_name=self.variable_short_name, 
+                                        lat_range=self.lat_range,
+                                        lon_range=self.lon_range,
+                                        inputdir=self.inputdir,
+                                        outputdir=self.outputdir,
+                                        download_files=False,
+                                        output_to_file=True,
+                                        output_format="MultiProcessing")
+
+    def process_records(self, action, multiprocessing):
         # Let's check what's inside the "action" variable and invoke the corresponding function
         if action == "download-silo-file":
             self.logger.info('Action {} invoked'.format(action))
@@ -277,6 +319,7 @@ class SILO():
                                         variable_short_name=self.variable_short_name, 
                                         lat_range=self.lat_range,
                                         lon_range=self.lon_range,
+                                        inputdir=self.inputdir,
                                         outputdir=self.outputdir,
                                         download_files=False,
                                         output_to_file=True,
@@ -481,13 +524,11 @@ class SILO():
         empty_lon_coordinates = []
 
         # Loading and/or Downloading the files
-        for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
+        for year in tqdm(year_range, ascii=True, desc="Year"):
+            self.logger.debug('Processing data for year {}'.format(year))
 
-            self.logger.debug('Processing data for variable {}'.format(climate_variable))
-
-            for year in tqdm(year_range, ascii=True, desc="Year"):
-
-                self.logger.debug('Processing data for year {}'.format(year))
+            for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
+                self.logger.debug('Processing data for variable {}'.format(climate_variable))
 
                 # should we download the file first?
                 if download_files == True:
@@ -580,52 +621,60 @@ class SILO():
         empty_lon_array = np.array(empty_lon_coordinates)
         final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
 
+        # Check if this is a multiprocessing loop
+        if output_format == "MultiProcessing":
+            self.total_parallel_met_df = self.total_parallel_met_df.append(total_met_df)
+            return
+
         # Should we generate any file output for this var-year-lat-lon iteration?
+        # TODO: pass in a type of output to be generated like MET or CSV
         if output_to_file == True:
+            self.generate_output(total_met_df, final_lon_range)
+
+    def generate_output(self, final_met_df, lon_range):
+        # Rename variables
+        # Check if final df is empty, if so, then return and do not proceed with the rest of the file
+        if final_met_df.empty == True:
+            self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
+            return
+
+        try: 
+            final_met_df = final_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+            final_met_df = final_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
             
-            # Rename variables
-            # Check if final df is empty, if so, then return and do not proceed with the rest of the file
-            if total_met_df.empty == True:
-                self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
-                return
+            self.logger.info("Proceeding to the generation of MET files")
 
-            try: 
-                total_met_df = total_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
-                total_met_df = total_met_df.groupby(['lon', 'lat', 'year', 'day'])['radn', 'maxt', 'mint', 'rain'].sum().reset_index()
+            for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
                 
-                self.logger.info("Proceeding to the generation of MET files")
+                for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
 
-                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+                    met_slice_df = final_met_df[(final_met_df.lon == lon) & (final_met_df.lat == lat)]
+                    del met_slice_df['lat']
+                    del met_slice_df['lon']
+
+                    if self.output_type == "met":
+                        self.generate_met(outputdir, met_slice_df, lat, lon)
                     
-                    for lon in tqdm(final_lon_range, ascii=True, desc="Longitude"):
+                    elif self.output_type == "csv":
+                        full_output_path = outputdir/'{}-{}.csv'.format(lat, lon)
+                        met_slice_df.to_csv(full_output_path, sep=",", index=False, mode='w', float_format='%.2f')
 
-                        met_slice_df = total_met_df[(total_met_df.lon == lon) & (total_met_df.lat == lat)]
-                        del met_slice_df['lat']
-                        del met_slice_df['lon']
+                    else:
+                        self.logger.info("Output not yet implemented")
 
-                        if self.output_type == "met":
-                            self.generate_met(outputdir, met_slice_df, lat, lon)
-                        
-                        elif self.output_type == "csv":
-                            full_output_path = outputdir/'{}-{}.csv'.format(lat, lon)
-                            met_slice_df.to_csv(full_output_path, sep=",", index=False, mode='w', float_format='%.2f')
+                    # Delete unused df
+                    del met_slice_df
 
-                        else:
-                            self.logger.info("Output not yet implemented")
+        except KeyError as e:
+            self.logger.error("Could not find all required climate variables to generate MET: {}".format(str(e)))
 
-                        # Delete unused df
-                        del met_slice_df
-
-            except KeyError as e:
-                self.logger.error("Could not find all required climate variables to generate MET: {}".format(str(e)))
-
-            generate_final_csv = False
-            if generate_final_csv == True:
-                # Creating final CSV file
-                csv_file_name = 'mega_final_data_frame.csv'
-                self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-                full_output_path = outputdir/csv_file_name
-                total_met_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
+        generate_final_csv = False
+        if generate_final_csv == True:
+            # Creating final CSV file
+            csv_file_name = 'mega_final_data_frame.csv'
+            self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
+            full_output_path = outputdir/csv_file_name
+            final_met_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
 
     def generate_met(self, outputdir, met_dataframe, lat, lon):
 
@@ -700,7 +749,7 @@ def main():
     import coloredlogs
     logger = logging.getLogger('POPBEAST')
     coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
-    
+
   except ModuleNotFoundError:
     logger = logging.getLogger('POPBEAST')
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
@@ -718,7 +767,10 @@ def main():
   # Grab an instance of the SILO class
   silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.output_type, pargs.input_path, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
   # Start to process the records
-  silo_instance.process_records(pargs.action)
+  if pargs.multiprocessing == True:
+    silo_instance.process_records(pargs.action, pargs.multiprocessing)
+  else:
+    silo_instance.process_records(pargs.action, pargs.multiprocessing)
     
   # Capturing end time for debugging purposes
   et = datetime.now()
