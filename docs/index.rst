@@ -8,14 +8,13 @@ BestiaPop
     :maxdepth: 2
     :caption: Introduction
 
-    What is BestiaPop <`Cross-References to Locations in the Same Document`_>
+    What is BestiaPop <`BestiaPop: A python script for climate data extraction and processing`_>
 
  .. toctree::
     :maxdepth: 2
     :caption: Usage
 
     Usage <usage>
-
 
 
 BestiaPop: A python script for climate data extraction and processing
