@@ -5,14 +5,14 @@ BestiaPop
 =========
 
  .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
     :caption: Introduction
 
-    What is BestiaPop <bestiapop-description>
+    What is BestiaPop <`Cross-References to Locations in the Same Document`_>
 
  .. toctree::
-    :maxdepth: 3
-    :caption: Introduction
+    :maxdepth: 2
+    :caption: Usage
 
     Usage <usage>
 
