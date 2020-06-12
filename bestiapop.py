@@ -157,11 +157,22 @@ class Arguments():
         return self.pargs
 
 class SILO():
+    """
+        SILO Class
 
-    def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range):
+        Args:
+            logger (str): A pointer to the initialized logging module
+            action (str): the type of action to be performed by BestiaPop
+
+        Returns:
+            class: A class object with access to SILO methods
+    """
+
+    def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range, multiprocessing):
 
         # Initializing variables
         # For parallel multiprocessing
+        self.multiprocessing = multiprocessing
         self.total_parallel_met_df = pd.DataFrame()
         self.final_parallel_lon_range = np.empty(0)
 
@@ -271,7 +282,7 @@ class SILO():
             self.logger.info("Parallel Computing for {} not implemented yet".format(action))
 
         elif action == "generate-met-file":
-            
+
             # Let's generate a worker pool equal to the amount of cores available
             self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
             worker_pool = mp.Pool(mp.cpu_count())
@@ -391,7 +402,6 @@ class SILO():
                 output_type="met"
             )
 
-
     def load_cdf_file(self, sourcepath, data_category, load_from_s3=True, year=None):
 
         # This function loads the ".nc" file using the xarray library and
@@ -405,7 +415,7 @@ class SILO():
             self.remote_file_obj = fs_s3.open(self.silo_file, mode='rb')
             da_data_handle = xr.open_dataset(self.remote_file_obj, engine='h5netcdf')
             self.logger.debug('Loaded netCDF4 file {} from Amazon S3'.format(self.silo_file))
-        
+
         else:
             # This function expects that we will pass the value series
             # we are looking for in the "data_category" parameter
@@ -414,7 +424,7 @@ class SILO():
             # load_file(sourcepath, sourcefile, 'daily_rain')
             self.logger.info('Loading netCDF4 file {} from Disk'.format(sourcepath))
             da_data_handle = xr.open_dataset(sourcepath, engine='h5netcdf')
-        
+
         # Extracting the "year" from within the file itself.
         # For this we get a sample of the values and then 
         # convert the first value to a year. Assuming we are dealing
@@ -422,13 +432,13 @@ class SILO():
         # represent a problem
         da_sample = da_data_handle.time.head().values[1]
         data_year = da_sample.astype('datetime64[Y]').astype(int) + 1970
-        
+
         # Storing the pointer to the data and the year in a dict
         data_dict = {
             "value_array": da_data_handle, 
             "data_year": data_year,            
         }
-        
+
         # returning our dictionary with relevant values
         return data_dict
 
@@ -442,7 +452,7 @@ class SILO():
         # your own like: download_file_from_silo_s3(2011,'daily_rain','C:\\Downloads\\SILO\2011')
 
         # We use TQDM to show a progress bar of the download status
-      
+
         filename = str(year) + "." + variable_short_name + ".nc"
         url = 'https://s3-ap-southeast-2.amazonaws.com/silo-open-data/annual/{}/{}'.format(variable_short_name, filename)
 
@@ -457,7 +467,7 @@ class SILO():
         # Set initial file size and total file size
         first_byte = 0
         total_file_size = int(req.headers.get("Content-Length", 0))
-        
+
         if first_byte >= total_file_size:
             return total_file_size
 
@@ -468,7 +478,7 @@ class SILO():
                             ascii=True,
                             unit_scale=True,
                             desc=url.split('/')[-1])
-        
+
         # Write file in chunks
         # Let's first check whether the file has already been downloaded
         # if it has, let's return without downloading it again
@@ -490,7 +500,6 @@ class SILO():
         except:
             self.logger.error("Could not download SILO file")
 
-                    
         progressbar.close()
 
     def get_values_from_array(self, lat, lon, value_array, file_year, variable_short_name):
@@ -533,12 +542,12 @@ class SILO():
         # now we need to fill a PANDAS DataFrame with the lists we've been collecting
         pandas_dict_of_items = {'days': days,
                                 variable_short_name: data_values}
-      
+
         df = pd.DataFrame.from_dict(pandas_dict_of_items)
-        
+
         # making the julian day match the expected
         df['days'] += 1
-        
+
         # adding a column with the "year" to the df
         # so as to prepare it for export to other formats (CSV, MET, etc.)
         df.insert(0, 'year', file_year)
@@ -576,12 +585,36 @@ class SILO():
         # where there are no values
         empty_lon_coordinates = []
 
-        # Loading and/or Downloading the files
-        for year in tqdm(year_range, ascii=True, desc="Year"):
-            self.logger.debug('Processing data for year {}'.format(year))
+        # Determine whether we are running multithreaded or not for nested loop efficiency
+        # This method will allow us to swap the first two iterator levels in the 4-level nested loop
+        if self.multiprocessing == True:
+            main_loop_var = year_range
+            main_loop_var_desc = "Year"
+            secondary_loop_var = variable_short_name
+            secondary_loop_var_desc = "Climate Variable"
+        else:
+            main_loop_var = variable_short_name
+            main_loop_var_desc = "Climate Variable"
+            secondary_loop_var = year_range
+            secondary_loop_var_desc = "Year"
 
-            for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
-                self.logger.debug('Processing data for variable {}'.format(climate_variable))
+        # Loading and/or Downloading the files
+        for main_element in tqdm(main_loop_var, ascii=True, desc=main_loop_var_desc):
+            if self.multiprocessing == True:
+                year = main_element
+                self.logger.debug('Processing data for year {}'.format(year))
+            else:
+                climate_variable = main_element
+                self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
+
+            for second_element in tqdm(secondary_loop_var, ascii=True, desc=secondary_loop_var_desc):
+                if self.multiprocessing == True:
+                    climate_variable = second_element
+                    self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
+                else:
+                    year = second_element
+                    self.logger.debug('Processing data for year {}'.format(year))
+                    
 
                 # should we download the file first?
                 if download_files == True:
@@ -659,7 +692,6 @@ class SILO():
 
         # Return results
         return (total_met_df, final_lon_range)
-
 
     def generate_output(self, final_met_df, lat_range, lon_range, outputdir, output_type="met"):
 
@@ -803,7 +835,7 @@ def main():
   logger.info("Starting POPBEAST Climate Automation Framework")
   
   # Grab an instance of the SILO class
-  silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range)
+  silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing)
   # Start to process the records
   if pargs.multiprocessing == True:
     logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
