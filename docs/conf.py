@@ -30,8 +30,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.autosummary',
-    'numpydoc',
+    'sphinx.ext.autosummary'
 ]
 
 napoleon_google_docstring = True
