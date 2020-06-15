@@ -107,26 +107,3 @@ MULTIPROCESSING CASE 1 - Generate MET output files from AWS S3 for Radiation, Mi
 
 Here, the ``-m`` at the end will engage multiple cores to process the
 tasks. If you have 8 available cores
-
-Main References (The following papers implemented this code and can be used as references)
-------------------------------------------------------------------------------------------
-
-1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B,
-   Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F,
-   Meinke H (2019) Effects of soil- and climate data aggregation on
-   simulated potato yield and irrigation water demand. Science of the
-   Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
-2. Ojeda JJ, Perez D, Eyshi Rezaei E (2020) The BestiaPop - A Python
-   package to automatically generate gridded climate data for crop
-   models. APSIM Symposium, Brisbane, Australia.
-
-Package references
-------------------
-
-1. `https://registry.opendata.aws/silo/`_
-2. `https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f`_
-3. `http://xarray.pydata.org/en/stable/dask.html`_
-
-.. _`https://registry.opendata.aws/silo/`: https://registry.opendata.aws/silo/
-.. _`https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f`: https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f
-.. _`http://xarray.pydata.org/en/stable/dask.html`: http://xarray.pydata.org/en/stable/dask.html

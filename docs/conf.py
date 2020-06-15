@@ -18,9 +18,9 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
-#import os
-#import sys
-#sys.path.insert(0, os.path.abspath('../BestiaPop'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../bestiapop'))
 
 
 # -- General configuration ------------------------------------------------
@@ -29,7 +29,9 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary',
+    'numpydoc',
 ]
 
 napoleon_google_docstring = True

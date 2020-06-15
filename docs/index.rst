@@ -4,18 +4,6 @@
 BestiaPop 
 =========
 
- .. toctree::
-    :maxdepth: 2
-    :caption: Introduction
-
-    What is BestiaPop <`BestiaPop: A python script for climate data extraction and processing`_>
-
- .. toctree::
-    :maxdepth: 2
-    :caption: Usage
-
-    Usage <usage>
-
 
 BestiaPop: A python script for climate data extraction and processing
 =====================================================================
@@ -48,9 +36,10 @@ Authors
 (@JJguri / `https://www.jojeda.com/`_)
 
 Description
-~~~~~~~~~~~
+===========
 
-**What is**\ `APSIM`_\ **?**
+What is \ `APSIM`_\?
+~~~~~~~~~~~~~~~~~~~~
 
 The Agricultural Production Systems sIMulator (APSIM) is internationally
 recognised as a highly advanced platform for modelling and simulation of
@@ -71,7 +60,8 @@ and infrastructure software of APSIM.
 .. _`https://www.jojeda.com/`: https://www.jojeda.com/
 .. _APSIM Initiative: https://www.apsim.info/about-us/
 
-**What is a MET file?**
+What is a MET file?
+~~~~~~~~~~~~~~~~~~~
 
 The APSIM Met module provided daily meteorological information to all
 modules within an APSIM simulation. The APSIM Met Module requires
@@ -97,8 +87,8 @@ constants or columns can be added to the file. These then become
 available to APSIM as variables that can be reported or used in manager
 script.
 
-**Can I use this script to generate climate files for other
-process-based crop models?**
+Can I use this script to generate climate files for other process-based crop models?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So far, the code is producing CSV or MET files to be directly used by
 APSIM, however, it also could be applied to produce input climate data
@@ -118,7 +108,7 @@ More information
 `https://www.jojeda.com/project/project-6/`_
 
 Installation
-------------
+============
 
 1. Clone this repo
 2. Install required packages.
@@ -141,11 +131,43 @@ environment**. Preferably, install using the next method which creates a
 custom environment.
 
 1. Open your anaconda prompt for the *base* environment (default)
-2. \`conda install -y -c conda-forge --file require
+2. ``conda install -y -c conda-forge --file require``
+
+Create Custom Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. ``conda create -y --name bestiapop python==3.7``
+2. ``conda install --name bestiapop -y -c conda-forge --file requirements.txt``
+3. ``conda activate bestiapop``
+
+Main References
+===============
+
+*The following papers implemented this code and can be used as references*
+
+1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B,
+   Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F,
+   Meinke H (2019) Effects of soil- and climate data aggregation on
+   simulated potato yield and irrigation water demand. Science of the
+   Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
+2. Ojeda JJ, Perez D, Eyshi Rezaei E (2020) The BestiaPop - A Python
+   package to automatically generate gridded climate data for crop
+   models. APSIM Symposium, Brisbane, Australia.
+
+Package references
+~~~~~~~~~~~~~~~~~~
+
+1. `https://registry.opendata.aws/silo/`_
+2. `https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f`_
+3. `http://xarray.pydata.org/en/stable/dask.html`_
+
+.. _`https://registry.opendata.aws/silo/`: https://registry.opendata.aws/silo/
+.. _`https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f`: https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f
+.. _`http://xarray.pydata.org/en/stable/dask.html`: http://xarray.pydata.org/en/stable/dask.html
+
 
 .. _MET file: https://www.apsim.info/documentation/model-documentation/infrastructure-and-management-documentation/met/
 .. _tav_amp: https://www.apsim.info/wp-content/uploads/2019/10/tav_amp-1.pdf
 .. _DSSAT: https://dssat.net/
 .. _STICS: https://www6.paca.inrae.fr/stics_eng/About-us/Stics-model-overview
 .. _`https://www.jojeda.com/project/project-6/`: https://www.jojeda.com/project/project-6/
-
