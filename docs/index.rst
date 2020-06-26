@@ -1,9 +1,20 @@
 :Authors: 
   * Diego Perez (@darkquassar)
 
+**********
 BestiaPop 
-=========
+**********
 
+**Date**: |today| **Version**: |version|
+
+.. module:: bestiapop
+
+.. toctree::
+    :maxdepth: 3
+    :titlesonly:
+
+    getting_started/usage
+    api_reference/api
 
 BestiaPop: A python script for climate data extraction and processing
 =====================================================================
@@ -34,6 +45,7 @@ Authors
 
 **Data Scientist & Agricultural Systems Modeller**: Jonathan Ojeda
 (@JJguri / `https://www.jojeda.com/`_)
+
 
 Description
 ===========
@@ -161,10 +173,11 @@ Package references
 2. `https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f`_
 3. `http://xarray.pydata.org/en/stable/dask.html`_
 
+
+
 .. _`https://registry.opendata.aws/silo/`: https://registry.opendata.aws/silo/
 .. _`https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f`: https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f
 .. _`http://xarray.pydata.org/en/stable/dask.html`: http://xarray.pydata.org/en/stable/dask.html
-
 
 .. _MET file: https://www.apsim.info/documentation/model-documentation/infrastructure-and-management-documentation/met/
 .. _tav_amp: https://www.apsim.info/wp-content/uploads/2019/10/tav_amp-1.pdf

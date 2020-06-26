@@ -4,3 +4,5 @@ settings.json
 test/*
 *_test.py
 **/__pycache*
+/docs-build
+*/_build

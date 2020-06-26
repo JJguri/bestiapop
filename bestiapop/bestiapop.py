@@ -56,6 +56,8 @@ from tqdm import tqdm
 warnings.filterwarnings("ignore")
 
 class Arguments():
+    """This class defines the arguments used in the commandline and is invoked by the Main() method to obtain a parsed Argparse logger
+    """
 
     def __init__(self, args):
         self.parser = argparse.ArgumentParser(
@@ -157,15 +159,22 @@ class Arguments():
         return self.pargs
 
 class SILO():
-    """
-        SILO Class
+    """The main class that performs the majority of NetCDF file download and data extraction
 
         Args:
-            logger (str): A pointer to the initialized logging module
-            action (str): the type of action to be performed by BestiaPop
+            logger (str): A pointer to an initialized Argparse logger
+            action (str): the type of action to be performed by BestiaPop. Available choices are: download-silo-file (it will only download a particular SILO file from S3 to your local disk), convert-nc4-to-met (it will only convert a local or S3 file from NC4 format to MET), convert-nc4-to-csv(it will only convert a local or S3 file from NC4 format to CSV), download-and-convert-to-met (combines the first two actions)
+            inputpath (str): if the NetCDF files to be processed are stored locally, this path will be used to look for all the files required to extract data from the different year, latitude and longitude ranges
+            outputpath (str): the path where generated output files will be stored
+            output_type (str): the type of output
+            variable_short_name (str): 
+            year_range (str): a starting and ending year separated by a dash, example: "2012-2016". This string gets broken down into numpy.ndarray array afterwards.
+            lat_range (str): a start and end latitude separated by a "space", example: "-41.15 -41.05". This string gets broken down into numpy.ndarray array afterwards. 
+            lon_range (str): a start and end latitude separated by a "space", example: "145.5 145.6". This string gets broken down into numpy.ndarray array afterwards.
+            multiprocessing (bool): a switch that tells BestiaPop to process records using parallel computing with python's multiprocessing module.
 
         Returns:
-            class: A class object with access to SILO methods
+            SILO: A class object with access to SILO methods
     """
 
     def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range, multiprocessing):
@@ -268,6 +277,12 @@ class SILO():
             sys.exit(1)
 
     def process_records_parallel(self, action):
+        """Perform selected actions on NetCDF4 file in parallel mode 
+
+        Args:
+            action {'download-silo-file', 'convert-nc4-to-met', 'convert-nc4-to-csv'} (string): the type of action to be performed in parallel. Example: download-silo-file, convert-nc4-to-met, convert-nc4-to-csv, generate-met-file
+        """
+
         # Let's check what's inside the "action" variable and invoke the corresponding function
         if action == "download-silo-file":
             # TODO
@@ -321,6 +336,11 @@ class SILO():
                     break
 
     def process_parallel_output(self, lat_range):
+        """Generate output files using multiple cores
+
+        Args:
+            lat_range (numpy.ndarray): A numpy array with all the desired latitudes whose data needs to be extracted and converted to an output format. This function is called by process_records_parallel.
+        """
 
         try:
             self.generate_output(
@@ -338,6 +358,14 @@ class SILO():
         
 
     def process_parallel_met(self, year):
+        """Process records using multiple cores
+
+        Args:
+            year (int): the year to extract information for. This function gets called iteratively by a multiprocessing Pool created by process_records_parallel.
+
+        Returns:
+            pandas.core.frame.DataFrame: the slice dataframe
+        """
 
         try:
             final_df_latlon_tuple_list = self.generate_climate_dataframe(
@@ -356,6 +384,12 @@ class SILO():
         return final_df_latlon_tuple_list
 
     def process_records(self, action):
+        """Processing records for non-parallel computing
+
+        Args:
+            action (str): the type of action to be performed
+        """
+
         # Let's check what's inside the "action" variable and invoke the corresponding function
         if action == "download-silo-file":
             self.logger.info('Action {} invoked'.format(action))
@@ -403,6 +437,17 @@ class SILO():
             )
 
     def load_cdf_file(self, sourcepath, data_category, load_from_s3=True, year=None):
+        """This function loads a NetCDF4 file either from the cloud or locally
+
+        Args:
+            sourcepath (str): when loading a NetCDF4 file locally, this specifies the source folder. Only the "folder" must be specified, the actual file name will be further qualified by BestiaPop grabbing data from the year and climate variable paramaters passed to the SILO class.
+            data_category (str): the short name variable, examples: daily_rain, max_temp, etc.
+            load_from_s3 (bool, optional): This parameter tells BestiaPop whether data should be fetched directly from the cloud. Defaults to True.
+            year (int, optional): the year we want to extract data from, it is used to compose the final AWS S3 URL or to qualify the full path to the local NetCDF4 file we would like to load. Defaults to None.
+
+        Returns:
+            dict: a dictionary containing two items, "value_array" which is a xarray DataSet object and "data_year" which is the year that the NetCDF4 file contains data for, extracted by looking at the contents of the NetCDF4 file itself.
+        """
 
         # This function loads the ".nc" file using the xarray library and
         # stores a pointer to it in "data_dict"
@@ -443,9 +488,19 @@ class SILO():
         return data_dict
 
     def download_file_from_silo_s3(self, year, variable_short_name, output_path = Path().cwd(), skip_certificate_checks=False):
+        """Downloads a file from AWS S3 bucket
+
+        Args:
+            year (int): the year we require data for. SILO stores climate data as separate years like so: daily_rain.2018.nc
+            variable_short_name (str): the climate variable short name as per SILO nomenclature, see https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
+            output_path (str, optional): The target folder where files should be downloaded. Defaults to Path().cwd().
+            skip_certificate_checks (bool, optional): ask the requests library to skip certificate checks, useful when attempting to download files behind a proxy. Defaults to False.
+
+        """
+
         # This function connects to the public S3 site for SILO and downloads the specified file
         # For a list of variables to use in "variable_short_name" see
-        # https://silo.longpaddock.qld.gov.au/climate-variables
+        # https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
         # Most common are: daily_rain, max_temp, min_temp
         # Example, call the function like: download_file_from_silo_s3(2011, "daily_rain")
         # The above will save to the current directory, however, you can also pass
@@ -503,6 +558,22 @@ class SILO():
         progressbar.close()
 
     def get_values_from_array(self, lat, lon, value_array, file_year, variable_short_name):
+        """Extract values from a xarray.Dataset object
+
+        Args:
+            lat (float): the latitude that values should be returned for
+            lon (float): the longitude that values should be returned for
+            value_array (xarray.Dataset): the xarray Dataset object to extract values from
+            file_year (string): the year of the file
+            variable_short_name (string): the climate variable short name as per SILO nomenclature, see https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
+
+        Raises:
+            ValueError: if there was "NO" data available for all days under a particular combination of lat & lon, then the total values collected should equal "0" (meaning, there was no data for that point in the grid). If this is the case, then the function will simply return with a "no_values" message and signal the calling function that it should ignore this particular year-lat-lon combination.
+
+        Returns:
+            pandas.core.frame.DataFrame: a dataframe containing 5 columns: the Julian day, the grid data value for that day, the year, the latitude, the longitude.
+        """
+
         # This function will use xarray to extract a slice of time data for a combination of lat and lon values
 
         # Checking if this is a leap-year  
@@ -560,18 +631,28 @@ class SILO():
         return df
 
     def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, inputdir, download_files=False, load_from_s3=True):
+        """Creation of the different Climate DataFrames
 
-        '''
-        Creation of the DataFrame and Files
-        ===================================
+        Args:
+            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data, each year equates to a different file in the SILO database.
+            variable_short_name (str): the climate variable short name as per SILO nomenclature, see https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
+            lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
+            lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
+            inputdir (str): when selecting the option to generate MET files from local directories, this parameter must be specified, otherwise data will be fetched directly from cloud S3 buckets.
+            download_files (bool, optional): a switch that tells BestiaPop to first download the file from the cloud before processing them. It may speed up certain data processing times. Defaults to False.
+            load_from_s3 (bool, optional): whether data should be fetched directly from the cloud, whithout having to download a file locally. Defaults to True.
 
-        We will iterate through each "latitude" value and, 
-        within this loop, we will iterate through all the different 
-        "longitude" values for a given year. Results for each year
-        are collected inside the "met_df" with "met_df.append"
-        At the end, it will output a file with all the contents if
-        "output_to_file=True" (by default it is "True")
-        '''
+        Returns:
+            tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
+        """
+
+        #We will iterate through each "latitude" value and, 
+        #within this loop, we will iterate through all the different 
+        #"longitude" values for a given year. Results for each year
+        #are collected inside the "met_df" with "met_df.append"
+        #At the end, it will output a file with all the contents if
+        #"output_to_file=True" (by default it is "True")
+
         self.logger.debug('Generating DataFrames')
 
         # let's first create an empty df to store 
@@ -694,6 +775,16 @@ class SILO():
         return (total_met_df, final_lon_range)
 
     def generate_output(self, final_met_df, lat_range, lon_range, outputdir, output_type="met"):
+        """Generate required Output based on Output Type selected
+
+        Args:
+            final_met_df (pandas.core.frame.DataFrame): the pandas daframe containing all the values that are going to be parsed into a specific output
+            lat_range (numpy.ndarray): an array of latitude values to select from the final_met_df
+            lon_range (numpy.ndarray): an array of longitude values to select from the final_met_df
+            outputdir (str): the folder that will be used to store the output files
+            output_type (str, optional): the output type: csv (not implemented yet), json(not implemented yet), met. Defaults to "met".
+
+        """
 
         if output_type == "met":
             # Rename variables
@@ -748,6 +839,14 @@ class SILO():
                 final_met_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
 
     def generate_met(self, outputdir, met_dataframe, lat, lon):
+        """Generate APSIM MET File
+
+        Args:
+            outputdir (str): the folder where the generated MET files will be stored
+            met_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to MET file
+            lat (float): the latitude for which this MET file is being generated
+            lon (float): the longitude for which this MET file is being generated
+        """
 
         # Creating final MET file
 

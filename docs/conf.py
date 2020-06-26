@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # BestiaPop documentation build configuration file, created by
@@ -16,12 +15,13 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 
+from datetime import datetime
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../bestiapop'))
 
+sys.path.insert(0, os.path.abspath('../bestiapop'))
+#import bestiapop
 
 # -- General configuration ------------------------------------------------
 
@@ -30,7 +30,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.autosummary'
+    'sphinx.ext.autosummary',
+    'sphinx.ext.todo',
 ]
 
 napoleon_google_docstring = True
@@ -39,18 +40,19 @@ napoleon_numpy_docstring = False
 # The name of the entry point, without the ".rst" extension.
 # By convention this will be "index"
 master_doc = "index"
+
 # This values are all used in the generated documentation.
 # Usually, the release and version are the same,
 # but sometimes we want to have the release have an "rc" tag.
 project = "BestiaPop"
-copyright = "2019, Diego Perez & Jonathan Ojeda"
+copyright = f"2019-{datetime.now().year}, Jonathan Ojeda & Diego Perez"
 author = "Diego Perez & Jonathan Ojeda"
 version = release = "2020.2.5"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
-#
+
 # The short X.Y version.
 version = '2.5'
 # The full version, including alpha/beta/rc tags.
@@ -68,7 +70,8 @@ language = None
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = ['docker',
                     'git',
-                    'nginx']
+                    'nginx',
+                    '**.ipynb_checkpoints']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -83,18 +86,30 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 #html_theme = 'alabaster'
-html_theme = 'sphinx_rtd_theme'
+html_theme = "pydata_sphinx_theme"
+#html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {}
+
+html_theme_options = {
+    "external_links": [],
+    "github_url": "https://github.com/JJguri/bestiapop",
+    "google_analytics_id": "",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_css_files = [
+    "css/pandas_getting_started.css",
+    "css/pandas.css",
+]
+
+html_logo = "_static/bestiapop-logo.png"
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -113,7 +128,7 @@ html_sidebars = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'BestiaPop'
-
+html_use_modindex = True
 
 # -- Options for LaTeX output ---------------------------------------------
 

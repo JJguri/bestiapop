@@ -11,9 +11,9 @@ This command will **only** download the file from AWS, it won't perform
 any further processing. **NOTE**: *a year range must be separated by a
 dash, whereas multiple climate variables are separated by spaces*
 
-.. code:: powershell
+.. code:: batch
 
-   python bestiapop.py -a download-silo-file -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
+      python bestiapop.py -a download-silo-file -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 
 Generate MET output files from AWS S3 for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,7 +25,7 @@ Generate MET output files from AWS S3 for Radiation, Min Temperature, Max Temper
 -  add *-ou csv* at the end of the script if a csv is required as output
    file. The code generates MET files by default.
 
-.. code:: powershell
+.. code-block:: batch
 
    python bestiapop.py -a generate-met-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\
 
@@ -55,14 +55,14 @@ Generate MET output files from Local Disk for Radiation, Min Temperature, Max Te
        \__ 2010.min_temp.nc
        \__ 2010.radiation.nc
 
-.. code:: powershell
+.. code:: batch
 
    python bestiapop.py -a generate-met-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -o C:\some\output\folder\
 
 Generate a CSV containing daily_rain data for year 2015 for a range of lat/lon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: powershell
+.. code:: batch
 
    python bestiapop.py -a convert-nc4-to-csv -y 2015 -c daily_rain -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\folder
 
@@ -101,7 +101,7 @@ when processing local NetCDF4 files, i.e. when passing the
 MULTIPROCESSING CASE 1 - Generate MET output files from AWS S3 for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: powershell
+.. code:: batch
 
    python bestiapop.py -a generate-met-file -y "2008-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -m
 
