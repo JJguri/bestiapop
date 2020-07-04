@@ -39,7 +39,9 @@ The APSIM Met module provided daily meteorological information to all modules wi
 SILO Gridded Data Portal provides the option to download MET files for a single combination of latitude and longitude at the time. In order to download climate data from more than one combination of latitude and longitude, users needs to download an entire NetCDF file. During this process there are two selection fields in which the user can select one year and one daily climate variable at the time for all latitudes and longitudes combinations across Australia. Therefore, there is not option to select multiple years and variables at the same time. Another constraint is that the downloaded NetCDF file (only one combination of year and climate variable) is considerably high in size (approximately 410 MB). If a user wants to access long-term climate data (as is usual for crop modelling purposes) they must manually download each annual NetCDF file per variable and they must have enough local storage space to save those datasets. This makes the selection of multiple years and climate variables a frustrating process under the current SILO tools. The SILO Gridded Data Portal works well for quick access or a single use. However, there are several cases in which the SILO Data Portal is not ideal:
 
 * Requests for long-term climate datasets with more than one climate variable.
+
 * Requests for climate data from specific combinations of latitudes and longitudes.
+
 * Requests for newly released data that are identical to previous requests.
 
 `Bestiapop` addresses each of these issues by making the SILO Data Portal API accessible with Python code. This allows the user to automatically create MET files for several year, variable and geographical combinations in a faster way than the current available SILO Data Portal options and to execute a climate data request repeatedly to access new data with the same query.
