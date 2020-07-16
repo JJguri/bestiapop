@@ -202,10 +202,13 @@ class SILO():
     def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range, multiprocessing):
 
         # Checking that valid input has been provided
+        self.logger = logger
         if not lat_range:
             self.logger.error('You have not provided a valid value for latitude range. Cannot proceed.')
         if not lon_range:
             self.logger.error('You have not provided a valid value for longitude range. Cannot proceed.')
+        if not lat_range or lon_range:
+            sys.exit()
 
         # Initializing variables
         # For parallel multiprocessing
@@ -214,7 +217,6 @@ class SILO():
         self.final_parallel_lon_range = np.empty(0)
 
         self.action = action
-        self.logger = logger
         self.logger.info('Initializing {}'.format(__name__))
         if inputpath:
             self.inputdir = Path(inputpath)
@@ -959,7 +961,7 @@ def main():
   # Instantiating the arguments class
   args = Arguments(sys.argv)
   pargs = args.get_args()
-  
+
   # Pre-process the Latitude and Longitude argument
   if pargs.__contains__("latitude_file"):
       pargs.latitude_range = pargs.latitude_file
