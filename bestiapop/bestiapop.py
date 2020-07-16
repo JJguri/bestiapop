@@ -3,7 +3,7 @@
 '''
  NAME: POPBEAST
  VERSION: 2.5
- DATA ANALYTICS SPECIALIST - CORE CODE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
+ DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
  DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
  DESCRIPTION: A python package to automatically generate gridded climate data for APSIM (to be extended for any crop models)
  PAPERS OR PROJECTS USING THIS CODE: 
@@ -91,6 +91,22 @@ class Arguments():
         )
 
         self.parser.add_argument(
+            "-latf", "--latitude-file",
+            help="A file containing a single column with a list of latitudes that you would like BestiaPop to extract data from.",
+            type=self.extract_coord_from_file,
+            default=None,
+            required=False
+        )
+
+        self.parser.add_argument(
+            "-lonf", "--longitude-file",
+            help="A file containing a single column with a list of longitudes that you would like BestiaPop to extract data from.",
+            type=self.extract_coord_from_file,
+            default=None,
+            required=False
+        )
+
+        self.parser.add_argument(
             "-lat", "--latitude-range",
             help="The latitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lat ""-40.85 -40.90"" \n -lat ""30.10 33"" \n -lat -41",
             type=self.space_separated_list_float,
@@ -139,6 +155,12 @@ class Arguments():
 
         self.pargs = self.parser.parse_args()
 
+    def extract_coord_from_file(self, file):
+        self.logger.info("A file has been provided with coordinate values, processing it...")
+        coordinate_list_table = pd.read_csv(file, names=["coord"])
+        coordinate_list_array = np.array(coordinate_list_table.coord.to_list(), dtype=float)
+        return coordinate_list_array
+
     def space_separated_list_float(self, string):
         # Adding our own parser for space separated values
         # since Argparse interprets them as multiple values and complains
@@ -179,6 +201,12 @@ class SILO():
 
     def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range, multiprocessing):
 
+        # Checking that valid input has been provided
+        if not lat_range:
+            self.logger.error('You have not provided a valid value for latitude range. Cannot proceed.')
+        if not lon_range:
+            self.logger.error('You have not provided a valid value for longitude range. Cannot proceed.')
+
         # Initializing variables
         # For parallel multiprocessing
         self.multiprocessing = multiprocessing
@@ -211,7 +239,12 @@ class SILO():
         # Check whether a lat and lon range separated by a space was provided.
         # If this is the case, generate a list out of it
         # NOTE: for some reason I get a list within a list from the argparse...
-        if lat_range:
+        if isinstance(lat_range, np.ndarray):
+            # The user passed in a file with an array of latitudes
+            # this file was processed during the argument parsing phase
+            # and a numpy.ndarray was returned. Nothing else to do.
+            self.lat_range = lat_range
+        else:
             if len(lat_range) > 1:
                 if lat_range[0] < 0 and lat_range[1] < 0:
                     if lat_range[0] > lat_range[1]:
@@ -262,8 +295,6 @@ class SILO():
                         lon_range = np.delete(lon_range,(len(lon_range)-1),0)
 
             self.lon_range = lon_range
-
-        # TODO
 
         # Validate output directory
         if self.outputdir.is_dir() == True:
@@ -908,10 +939,6 @@ year day radn maxt mint rain
             f.write(in_memory_met)
 
 def main():
-  # Instantiating the arguments class
-  args = Arguments(sys.argv)
-  pargs = args.get_args()
-
   # Setup logging
   # We need to pass the "logger" to any Classes or Modules that may use it 
   # in our script
@@ -928,6 +955,16 @@ def main():
     console_handler.setLevel(logging.DEBUG)
     logger.addHandler(console_handler)
     logger.setLevel(logging.INFO)
+
+  # Instantiating the arguments class
+  args = Arguments(sys.argv)
+  pargs = args.get_args()
+  
+  # Pre-process the Latitude and Longitude argument
+  if pargs.__contains__("latitude_file"):
+      pargs.latitude_range = pargs.latitude_file
+  if pargs.__contains__("longitude_file"):
+      pargs.longitude_range = pargs.longitude_file
   
   # Capturing start time for debugging purposes
   st = datetime.now()
