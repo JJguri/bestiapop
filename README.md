@@ -65,7 +65,7 @@ This option might take a *very* long time due to the multiple dependencies that 
 
 ## Examples
 
-### Download SILO climate files for years 2010 to 1028 and the variables daily_rain and max_temp
+### Download SILO climate files between 2010 and 2018 and the variables rain and maximum temperature at daily step
 
 This command will **only** download the file from AWS, it won't perform any further processing.
 **NOTE**: *a year range must be separated by a dash, whereas multiple climate variables are separated by spaces*
@@ -74,7 +74,7 @@ This command will **only** download the file from AWS, it won't perform any furt
 python bestiapop.py -a download-silo-file -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 ```
 
-### Generate MET output files from AWS S3 for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+### Generate MET output files from AWS S3 for radiation, minimum temperature, maximum temperature and rain at daily step between 2015 and 2016
 
 **Note**:
 
@@ -85,7 +85,7 @@ python bestiapop.py -a download-silo-file -y "2010-2018" -c "daily_rain max_temp
 python bestiapop.py -a generate-met-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\
 ```
 
-### Generate MET output files from Local Disk for Radiation, Min Temperature, Max Temperature and Daily Rain for years 1990 to 2010
+### Generate MET output files from Local Disk for radiation, minimum temperature, maximum temperature and rain at daily step between 1990 and 2010
 
 **Note**:
 
@@ -112,7 +112,7 @@ C:\input\folder:
 python bestiapop.py -a generate-met-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -o C:\some\output\folder\
 ```
 
-### Generate a CSV containing daily_rain data for year 2015 for a range of lat/lon
+### Generate a CSV containing rain data at daily step for year 2015 for a range of latitudes and longitudes
 
 ```powershell
 python bestiapop.py -a convert-nc4-to-csv -y 2015 -c daily_rain -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\folder
