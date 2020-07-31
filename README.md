@@ -65,7 +65,7 @@ This option might take a *very* long time due to the multiple dependencies that 
 
 ## Examples
 
-### Download SILO climate files between 2010 and 2018 and the variables rain and maximum temperature at daily step
+### Download SILO climate files for rain and maximum temperature at daily step between 2010 and 2018
 
 This command will **only** download the file from AWS, it won't perform any further processing.
 **NOTE**: *a year range must be separated by a dash, whereas multiple climate variables are separated by spaces*
