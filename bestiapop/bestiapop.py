@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
- NAME: POPBEAST
+ NAME: BESTIAPOP (POPBEAST)
  VERSION: 2.5
  DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
  DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
@@ -108,7 +108,7 @@ class Arguments():
 
         self.parser.add_argument(
             "-lat", "--latitude-range",
-            help="The latitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lat ""-40.85 -40.90"" \n -lat ""30.10 33"" \n -lat -41",
+            help="The latitude range to download data from the grid, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lat ""-40.85 -40.90"" \n -lat ""30.10 33"" \n -lat -41",
             type=self.space_separated_list_float,
             default=None,
             required=False
@@ -116,14 +116,14 @@ class Arguments():
 
         self.parser.add_argument(
             "-lon", "--longitude-range",
-            help="The longitude range to download data from the grid to a decimal degree, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lon ""145.45 145.5"" \n -lon ""145.10 146"" \n -lon 145",
+            help="The longitude range to download data from the grid, separated by a ""space"", in increments of 0.05. It also accepts single values. Examples: -lon ""145.45 145.5"" \n -lon ""145.10 146"" \n -lon 145",
             type=self.space_separated_list_float,
             required=False
         )
 
         self.parser.add_argument(
             "-i", "--input-directory",
-            help="For ""convert-nc4-to-met"" and ""convert-nc4-to-csv"", the file or folder that will be ingested as input in order to extract the specified data. Example: -i ""C:\\some\\folder\\2015.daily_rain.nc"". When NOT specified, the tool assumes it needs to get the data from the cloud.",
+            help="For ""convert-nc4-to-met"" and ""convert-nc4-to-csv"", the file or folder that will be ingested as input in order to extract the specified data. Example: -i ""C:\\some\\folder\\2015.daily_rain.nc"". When NOT specified, the tool assumes it needs to get the data from the cloud. For ""generate-met-file"", the local folder where BestiaPop will find the required NetCDF files to generate the required MET file, example: -i ""C:\\some\\folder\\"". When ""-i"" is used with ""generate-met-file"" then MET creation won't use S3 cloud files as the source.",
             type=str,
             default=None,
             required=False
@@ -207,7 +207,7 @@ class SILO():
             self.logger.error('You have not provided a valid value for latitude range. Cannot proceed.')
         if not lon_range:
             self.logger.error('You have not provided a valid value for longitude range. Cannot proceed.')
-        if not lat_range or lon_range:
+        if not lat_range or not lon_range:
             sys.exit()
 
         # Initializing variables
@@ -215,6 +215,7 @@ class SILO():
         self.multiprocessing = multiprocessing
         self.total_parallel_met_df = pd.DataFrame()
         self.final_parallel_lon_range = np.empty(0)
+        self.datasource = None
 
         self.action = action
         self.logger.info('Initializing {}'.format(__name__))
@@ -330,6 +331,8 @@ class SILO():
             self.logger.info("Parallel Computing for {} not implemented yet".format(action))
 
         elif action == "generate-met-file":
+            # setup value of datasource property to allow for desicions on downstream functions
+            self.datasource = "SILO"
 
             # Let's generate a worker pool equal to the amount of cores available
             self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
@@ -388,8 +391,6 @@ class SILO():
             print("\n" + "Parallel process interrupted" + "\n\n")
             sys.exit()
 
-        
-
     def process_parallel_met(self, year):
         """Process records using multiple cores
 
@@ -447,6 +448,9 @@ class SILO():
             )
 
         elif action == "generate-met-file":
+            # setup value of datasource property to allow for desicions on downstream functions
+            self.datasource = "SILO"
+            
             self.logger.info('Downloading data and converting to {} format'.format(self.output_type))
             # 1. Let's invoke generate_climate_dataframe with the appropriate options
             final_df_latlon_tuple_list = self.generate_climate_dataframe(
@@ -615,12 +619,62 @@ class SILO():
         else: 
             days = np.arange(0,365,1)
 
-        # Using a list comprehension to capture all daily values for the given year and lat/lon combinations
-        # We round values to a single decimal
-        self.logger.debug("Reading array data with xarray")
+        # If we are attempting to read from the cloud, use SILO's API instead of Xarray
+        if self.datasource == "SILO":
+            self.logger.debug("Reading array data using SILO API")
 
-        # Alternatively: data_values = [np.round(x, decimals=1) for x in (value_array[variable_short_name].loc[dict(lat=lat, lon=lon)]).values]
-        data_values = [np.round(x, decimals=1) for x in value_array[variable_short_name].sel(lat=lat, lon=lon).values]
+            # SILO Climate variable dict
+            silo_climate_variable_code = {
+                "daily_rain":           "R", 
+                "monthly_rain":         "R",
+                "max_temp":             "X",
+                "min_temp":             "N",
+                "vp":                   "V",
+                "vp_deficit":           "D",
+                "evap_pan":             "E",
+                "evap_syn":             "S",
+                "evap_comb":            "C",
+                "radiation":            "J",
+                "rh_tmax":              "H",
+                "rh_tmin":              "G",
+                "et_short_crop":        "F",
+                "et_tall_crop":         "T",
+                "et_morton_actual":     "A",
+                "et_morton_potential":  "P",
+                "et_morton_wet":        "W",
+                "mslp":                 "M"
+            }
+
+            silo_api_url = "https://www.longpaddock.qld.gov.au/cgi-bin/silo/DataDrillDataset.php?lat={}&lon={}&format=json&start={}0101&finish={}1231&username=bestiapop@bestiapop.com&password=gui&comment={}".format(lat, lon, file_year, file_year, silo_climate_variable_code[variable_short_name])
+            r = requests.get(silo_api_url)
+            json_data = r.json()
+            # The shape of returned data from SILO is: 
+            '''
+            'location': {'latitude': -41.1,
+            'longitude': 145.5,
+            'elevation': 298.1,
+            'reference': 'R'},
+            'extracted': 20200808,
+            'data': [
+                {'date': '2003-01-03',
+                'variables': [{'source': 25, 'value': 1.4, 'variable_code': 'daily_rain'}]},
+                {'date': '2003-01-04',
+                'variables': [{'source': 25, 'value': 1.8, 'variable_code': 'daily_rain'}]}, ...
+            ]
+            '''
+            
+            data_values = [np.round(x['variables'][0]['value'], decimals=1) for x in json_data['data']]
+
+        else:
+            # Using a list comprehension to capture all daily values for the given year and lat/lon combinations
+            # We round values to a single decimal
+            self.logger.debug("Reading array data from NetCDF with xarray")
+
+            # Alternatively: data_values = [np.round(x, decimals=1) for x in (value_array[variable_short_name].loc[dict(lat=lat, lon=lon)]).values]
+            data_values = [np.round(x, decimals=1) for x in value_array[variable_short_name].sel(lat=lat, lon=lon).values]
+
+            # closing handle to xarray DataSet
+            value_array.close()
 
         # We have captured all 365 or 366 values, however, they could all be NaN (non existent)
         # If this is the case, skip it
@@ -658,9 +712,6 @@ class SILO():
         df.insert(0, 'lat', lat)
         df.insert(0, 'lon', lon)
 
-        # closing handle to xarray DataSet
-        value_array.close()
-   
         return df
 
     def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, inputdir, download_files=False, load_from_s3=True):
@@ -756,7 +807,12 @@ class SILO():
                     data = self.load_cdf_file(sourcepath, climate_variable, load_from_s3=False)
 
                 elif load_from_s3 == True:
-                    data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
+                    if self.datasource == "SILO":
+                        self.logger.info("Datasource is: SILO. Reading data using SILO's API")
+                        file_year = year
+                    else:
+                        data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
+                        file_year = data['data_year']
                     
             
                 # Now iterating over lat and lon combinations
@@ -772,8 +828,6 @@ class SILO():
                         if lon in empty_lon_coordinates:
                             continue
 
-                        file_year = data['data_year']
-
                         self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, file_year))
 
                         # here we are checking whether the get_values_from_cdf function
@@ -782,7 +836,10 @@ class SILO():
                         # with an error, we skip this loop and don't produce any output files
                     
                         try:
-                            var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
+                            if self.datasource == "SILO":
+                                var_year_lat_lon_df = self.get_values_from_array(lat, lon, None, file_year, climate_variable)
+                            else:
+                                var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
                         except ValueError:
                             self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
                             self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
@@ -797,8 +854,11 @@ class SILO():
                 # We reached the end of the year loop
                 # we need must close the open handle to the s3fs file to free up resources
                 if load_from_s3 == True:
-                    self.remote_file_obj.close()
-                    self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
+                    if self.datasource == "SILO":
+                        None
+                    else:
+                        self.remote_file_obj.close()
+                        self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
 
         # Remove any empty lon values from longitude array so as to avoid empty MET generation
         empty_lon_array = np.array(empty_lon_coordinates)
@@ -887,6 +947,9 @@ class SILO():
         # Text alignment looks weird here but it must be left this way for proper output
         met_file_j2_template = '''[weather.met.weather]
 !station number={{ lat }}-{{ lon }}
+!This climate file is created by BestiaPop on {{ current_date }}
+!Source: {{ data_source }}
+!Date period from: {{ year_from }} to {{ year_to }}
 Latitude={{ lat }}
 Longitude={{ lon }}
 tav={{ tav }}
@@ -932,6 +995,11 @@ year day radn maxt mint rain
         # Calculate tav
         tav = tmeanbymonth.mean().tmean.round(decimals=5)
         
+        # Configure some header variables
+        current_date = datetime.now().strftime("%d/%m/%Y")
+        data_source = "SILO"
+        # TODO: data_source must be variable based on what the actual source is, whether SILO or NASAPOWER
+
         in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, vardata=met_df_text_output)
         df_output_buffer.close()
 
@@ -964,13 +1032,15 @@ def main():
 
   # Pre-process the Latitude and Longitude argument
   if pargs.__contains__("latitude_file"):
-      pargs.latitude_range = pargs.latitude_file
+      if pargs.latitude_file != None:
+        pargs.latitude_range = pargs.latitude_file
   if pargs.__contains__("longitude_file"):
-      pargs.longitude_range = pargs.longitude_file
+      if pargs.longitude_file != None:
+        pargs.longitude_range = pargs.longitude_file
   
   # Capturing start time for debugging purposes
   st = datetime.now()
-  logger.info("Starting POPBEAST Climate Automation Framework")
+  logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
   
   # Grab an instance of the SILO class
   silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing)
