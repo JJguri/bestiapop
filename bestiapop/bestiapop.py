@@ -1052,7 +1052,7 @@ year day radn maxt mint rain
         # Delete df
         del met_dataframe
 
-        in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=self.data_source, vardata=met_df_text_output)
+        in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=upper(self.data_source), vardata=met_df_text_output)
         df_output_buffer.close()
 
         full_output_path = outputdir/'{}-{}.met'.format(lat, lon)
@@ -1076,9 +1076,9 @@ year day radn maxt mint rain
         # Text alignment looks weird here but it must be left this way for proper output
         dssat_file_j2_template = '''*STATION NUMBER : {{ lat }}-{{ lon }}
 *WEATHER DATA : BestiaPop
-*DATA SOURCE : {{ datat_source }}
+*DATA SOURCE : {{ data_source }}
 
-@ INSI      LAT       LONG    ELEV    TAV       AMP    REFHT WNDHT
+@ INSI    LAT   LONG  ELEV TAV  AMP  REFHT WNDHT
   DIJY   {{ lat }} {{ lat }} -99.0 {{ tav }} {{ amp }} -99.0 -99.0
 @DATE  SRAD  TMAX  TMIN  RAIN
 {{ vardata }}
@@ -1133,7 +1133,7 @@ year day radn maxt mint rain
         # Configure some header variables
         current_date = datetime.now().strftime("%d/%m/%Y")
 
-        in_memory_dssat = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=self.data_source, vardata=dssat_df_text_output)
+        in_memory_dssat = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=upper(self.data_source), vardata=dssat_df_text_output)
         df_output_buffer.close()
 
         full_output_path = outputdir/'{}-{}.WHT'.format(lat, lon)
