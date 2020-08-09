@@ -1079,7 +1079,7 @@ year day radn maxt mint rain
 *DATA SOURCE : {{ data_source }}
 
 @ INSI    LAT   LONG  ELEV TAV  AMP  REFHT WNDHT
-  DIJY   {{ lat }} {{ lat }} -99.0 {{ tav }} {{ amp }} -99.0 -99.0
+  DIJY   {{ lat }} {{ lon }} -99.0 {{ tav }} {{ amp }} -99.0 -99.0
 @DATE  SRAD  TMAX  TMIN  RAIN
 {{ vardata }}
         '''
