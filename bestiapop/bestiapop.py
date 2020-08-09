@@ -213,19 +213,19 @@ class CLIMATEBEAST():
 
         # Checking that valid input has been provided
         self.logger = logger
-        if not lat_range:
-            self.logger.error('You have not provided a valid value for latitude range. Cannot proceed.')
-        if not lon_range:
-            self.logger.error('You have not provided a valid value for longitude range. Cannot proceed.')
-        if not lat_range or not lon_range:
-            sys.exit()
+        if action != "download-nc4-file":
+            if not lat_range:
+                self.logger.error('You have not provided a valid value for latitude range. Cannot proceed.')
+            if not lon_range:
+                self.logger.error('You have not provided a valid value for longitude range. Cannot proceed.')
+            if not lat_range or not lon_range:
+                sys.exit()
 
         # Initializing variables
         # For parallel multiprocessing
         self.multiprocessing = multiprocessing
         self.total_parallel_climate_df = pd.DataFrame()
         self.final_parallel_lon_range = np.empty(0)
-        self.datas_ource = data_source
 
         # General
         self.action = action
@@ -251,65 +251,66 @@ class CLIMATEBEAST():
 
         self.year_range = year_range
 
-        # Check whether a lat and lon range separated by a space was provided.
-        # If this is the case, generate a list out of it
-        # NOTE: for some reason I get a list within a list from the argparse...
-        if isinstance(lat_range, np.ndarray):
-            # The user passed in a file with an array of latitudes
-            # this file was processed during the argument parsing phase
-            # and a numpy.ndarray was returned. Nothing else to do.
-            self.lat_range = lat_range
-        else:
-            if len(lat_range) > 1:
-                if lat_range[0] < 0 and lat_range[1] < 0:
-                    if lat_range[0] > lat_range[1]:
-                        # We are clearly dealing with negative numbers
+        if action != "download-nc4-file":
+            # Check whether a lat and lon range separated by a space was provided.
+            # If this is the case, generate a list out of it
+            # NOTE: for some reason I get a list within a list from the argparse...
+            if isinstance(lat_range, np.ndarray):
+                # The user passed in a file with an array of latitudes
+                # this file was processed during the argument parsing phase
+                # and a numpy.ndarray was returned. Nothing else to do.
+                self.lat_range = lat_range
+            else:
+                if len(lat_range) > 1:
+                    if lat_range[0] < 0 and lat_range[1] < 0:
+                        if lat_range[0] > lat_range[1]:
+                            # We are clearly dealing with negative numbers
+                            # User has mistakenly swapped the order of numbers
+                            # we need to silently swap them back
+                            first_lat = lat_range[1]
+                            last_lat = lat_range[0]
+                        else:
+                            first_lat = lat_range[0]
+                            last_lat = lat_range[1]
+
+                    # Find absolute distance to account for missing values
+                    # numpy.arange erratic behaviour with floats: https://numpy.org/doc/stable/reference/generated/numpy.arange.html
+                    lat_value_count = np.round((abs(first_lat-last_lat) / 0.05), decimals=0)
+                    lat_range = np.arange(first_lat,last_lat,0.05).round(decimals=2)
+                    
+                    # Check the number spread
+                    if int(lat_value_count+1) != len(lat_range):
+                        lat_range = np.arange(first_lat,np.round((last_lat+0.05), decimals=2),0.05).round(decimals=2).tolist()
+                        if int(lat_value_count+1) != len(lat_range):
+                            # Must get rid of last float
+                            lat_range = np.delete(lat_range,(len(lat_range)-1),0)
+                
+                self.lat_range = lat_range
+
+            if lon_range:
+                if len(lon_range) > 1:
+                    if lon_range[0] > lon_range[1]:
                         # User has mistakenly swapped the order of numbers
                         # we need to silently swap them back
-                        first_lat = lat_range[1]
-                        last_lat = lat_range[0]
+                        first_lon = lon_range[1]
+                        last_lon = lon_range[0]
                     else:
-                        first_lat = lat_range[0]
-                        last_lat = lat_range[1]
+                        first_lon = lon_range[0]
+                        last_lon = lon_range[1]
 
-                # Find absolute distance to account for missing values
-                # numpy.arange erratic behaviour with floats: https://numpy.org/doc/stable/reference/generated/numpy.arange.html
-                lat_value_count = np.round((abs(first_lat-last_lat) / 0.05), decimals=0)
-                lat_range = np.arange(first_lat,last_lat,0.05).round(decimals=2)
-                
-                # Check the number spread
-                if int(lat_value_count+1) != len(lat_range):
-                    lat_range = np.arange(first_lat,np.round((last_lat+0.05), decimals=2),0.05).round(decimals=2).tolist()
-                    if int(lat_value_count+1) != len(lat_range):
-                        # Must get rid of last float
-                        lat_range = np.delete(lat_range,(len(lat_range)-1),0)
-            
-            self.lat_range = lat_range
+                    # Find absolute distance to account for missing values
+                    # numpy.arange erratic behaviour with floats: https://numpy.org/doc/stable/reference/generated/numpy.arange.html
+                    lon_value_count = np.round((abs(first_lon-last_lon) / 0.05), decimals=0)
+                    lon_range = np.arange(first_lon,last_lon,0.05).round(decimals=2)
 
-        if lon_range:
-            if len(lon_range) > 1:
-                if lon_range[0] > lon_range[1]:
-                    # User has mistakenly swapped the order of numbers
-                    # we need to silently swap them back
-                    first_lon = lon_range[1]
-                    last_lon = lon_range[0]
-                else:
-                    first_lon = lon_range[0]
-                    last_lon = lon_range[1]
+                    # Check the number spread
+                    if int(lon_value_count+1) != len(lon_range):
+                        lon_range = np.arange(first_lon,np.round((last_lon+0.05), decimals=2),0.05).round(decimals=2).tolist()
+                        if int(lat_value_count+1) != len(lat_range):
+                            # Must get rid of last float
+                            lon_range = np.delete(lon_range,(len(lon_range)-1),0)
 
-                # Find absolute distance to account for missing values
-                # numpy.arange erratic behaviour with floats: https://numpy.org/doc/stable/reference/generated/numpy.arange.html
-                lon_value_count = np.round((abs(first_lon-last_lon) / 0.05), decimals=0)
-                lon_range = np.arange(first_lon,last_lon,0.05).round(decimals=2)
-
-                # Check the number spread
-                if int(lon_value_count+1) != len(lon_range):
-                    lon_range = np.arange(first_lon,np.round((last_lon+0.05), decimals=2),0.05).round(decimals=2).tolist()
-                    if int(lat_value_count+1) != len(lat_range):
-                        # Must get rid of last float
-                        lon_range = np.delete(lon_range,(len(lon_range)-1),0)
-
-            self.lon_range = lon_range
+                self.lon_range = lon_range
 
         # Validate output directory
         if self.outputdir.is_dir() == True:
@@ -375,7 +376,7 @@ class CLIMATEBEAST():
 
             # Generate Output
             # Obtain an instance of the DATAOUTPUT class
-            self.data_output = DATAOUTPUT(self.logger)
+            self.data_output = DATAOUTPUT(self.logger, self.data_source)
             self.logger.info("Processing Output in Parallel")
             self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
             worker_pool = mp.Pool(mp.cpu_count())
@@ -481,7 +482,7 @@ class CLIMATEBEAST():
 
             # 2. Generate Output
             # Obtain an instance of the DATAOUTPUT class
-            self.data_output = DATAOUTPUT(self.logger)
+            self.data_output = DATAOUTPUT(self.logger, self.data_source)
             self.total_climate_met_df = final_df_latlon_tuple_list[0]
             self.final_lon_range = final_df_latlon_tuple_list[1]
             self.data_output.generate_output(
@@ -843,7 +844,7 @@ class CLIMATEBEAST():
                             self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
                             self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
                             # Append empty lon value to list
-                            empty_lon_coordinates.append(lon)                         
+                            empty_lon_coordinates.append(lon)
                             continue
                         
                         # delete the var_year_lat_lon_df back to zero.
@@ -852,7 +853,7 @@ class CLIMATEBEAST():
 
                 # We reached the end of the year loop
                 # we need must close the open handle to the s3fs file to free up resources
-                if self.input_path is not None:
+                if self.input_path is None:
                     self.remote_file_obj.close()
                     self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
 
@@ -868,15 +869,17 @@ class DATAOUTPUT():
 
         Args:
             logger (str): A pointer to an initialized Argparse logger
+            data_source (str): The climate database where the values are being extracted from: SILO or NASAPOWER
 
         Returns:
             DATAOUTPUT: A class object with access to DATAOUTPUT methods
     """
 
-    def __init__(self, logger):
+    def __init__(self, logger, data_source):
 
         # Setting up class variables
         self.logger = logger
+        self.data_source = data_source
         
     def generate_output(self, final_daily_df, lat_range, lon_range, outputdir, output_type="met"):
         """Generate required Output based on Output Type selected
@@ -897,27 +900,66 @@ class DATAOUTPUT():
                 self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
                 return
 
-            try: 
+            try:
+                # Rename df columns and sort them to match order expected by MET
                 final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
                 final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
-                
+
                 self.logger.info("Proceeding to the generation of MET files")
 
                 for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
                     
                     for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
 
-                        met_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
-                        del met_slice_df['lat']
-                        del met_slice_df['lon']
+                        coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
+                        del coordinate_slice_df['lat']
+                        del coordinate_slice_df['lon']
 
-                        self.generate_met(outputdir, met_slice_df, lat, lon)
+                        self.generate_met(outputdir, coordinate_slice_df, lat, lon)
 
                         # Delete unused df
-                        del met_slice_df
+                        del coordinate_slice_df
 
             except KeyError as e:
                 self.logger.error("Could not find all required climate variables to generate MET: {}".format(str(e)))
+
+        if output_type == "dssat":
+            # Rename variables
+            # Check if final df is empty, if so, then return and do not proceed with the rest of the file
+            if final_daily_df.empty == True:
+                self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
+                return
+
+            try:
+                # Rename df columns and sort them to match order expected by DSSAT
+                final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+                final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
+
+                # Let's generate DSSAT Year+JulianDay time format
+                # Creating pandas series with last two digits of the year
+                dssat_year_series = final_daily_df.year.apply(lambda x: str(x)[2:])
+                # Creating pandas series with julian days with leading zeroes up to two spaces
+                dssat_julian_day_series = np.char.zfill(final_daily_df.day.apply(str).to_list(), 3)
+                # Add DSSAT julian day values as first column
+                final_daily_df.insert(0, 'dssatday', dssat_year_series + dssat_julian_day_series)
+                
+                self.logger.info("Proceeding to the generation of DSSAT files")
+
+                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+                    
+                    for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
+
+                        coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
+                        del coordinate_slice_df['lat']
+                        del coordinate_slice_df['lon']
+
+                        self.generate_dssat(outputdir, coordinate_slice_df, lat, lon)
+
+                        # Delete unused df
+                        del coordinate_slice_df
+
+            except KeyError as e:
+                self.logger.error("Could not find all required climate variables to generate DSSAT: {}".format(str(e)))
 
         if output_type == "csv":
             # TODO: Clean this up...
@@ -934,9 +976,6 @@ class DATAOUTPUT():
                 full_output_path = outputdir/csv_file_name
                 var_year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.2f')
 
-            generate_final_csv = False
-            if generate_final_csv == True:
-                # Creating final CSV file
                 csv_file_name = 'mega_final_data_frame.csv'
                 self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
                 full_output_path = outputdir/csv_file_name
@@ -987,7 +1026,7 @@ year day radn maxt mint rain
         met_df_text_output = met_df_text_output.replace("\r\n", "\n")
         
         # Calculate here the tav, amp values
-        # TODO
+
         # Calculate amp
 
         # Get the months as a column
@@ -1009,15 +1048,98 @@ year day radn maxt mint rain
         # Configure some header variables
         current_date = datetime.now().strftime("%d/%m/%Y")
         data_source = "SILO"
-        # TODO: data_source must be variable based on what the actual source is, whether SILO or NASAPOWER
 
-        in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, vardata=met_df_text_output)
+        # Delete df
+        del met_dataframe
+
+        in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=upper(self.data_source), vardata=met_df_text_output)
         df_output_buffer.close()
 
         full_output_path = outputdir/'{}-{}.met'.format(lat, lon)
         with open(full_output_path, 'w+') as f:
             self.logger.info('Writting MET file {}'.format(full_output_path))
             f.write(in_memory_met)
+
+    def generate_dssat(self, outputdir, dssat_dataframe, lat, lon):
+        """Generate DSSAT File
+
+        Args:
+            outputdir (str): the folder where the generated DSSAT files will be stored
+            dssat_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to DSSAT file
+            lat (float): the latitude for which this DSSAT file is being generated
+            lon (float): the longitude for which this DSSAT file is being generated
+        """
+
+        # Creating final DSSAT file
+
+        # Setting up Jinja2 Template for final DSSAT file if required
+        # Text alignment looks weird here but it must be left this way for proper output
+        dssat_file_j2_template = '''*STATION NUMBER : {{ lat }}-{{ lon }}
+*WEATHER DATA : BestiaPop
+*DATA SOURCE : {{ data_source }}
+
+@ INSI    LAT   LONG  ELEV TAV  AMP  REFHT WNDHT
+  DIJY   {{ lat }} {{ lat }} -99.0 {{ tav }} {{ amp }} -99.0 -99.0
+@DATE  SRAD  TMAX  TMIN  RAIN
+{{ vardata }}
+        '''
+
+        j2_template = Template(dssat_file_j2_template)
+
+        # Initialize a string buffer to receive the output of df.to_csv in-memory
+        df_output_buffer = io.StringIO()
+
+        # Save data to a buffer (same as with a regular file but in-memory):
+        # Make a copy of the original dataframe so as to remove unnecessary values for the DSSAT file
+        # but to leave the values required to calculate TAV and AMP
+        dssat_df_2 = dssat_dataframe.copy()
+        # remove year
+        del dssat_df_2['year']
+        # remove day
+        del dssat_df_2['day']
+        dssat_df_2.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
+        # delete df copy
+        del dssat_df_2
+
+        # Get values from buffer
+        # Go back to position 0 to read from buffer
+        # Replace get rid of carriage return or it will add an extra new line between lines
+        df_output_buffer.seek(0)
+        dssat_df_text_output = df_output_buffer.getvalue()
+        dssat_df_text_output = dssat_df_text_output.replace("\r\n", "\n")
+        
+        # Calculate here the tav, amp values
+
+        # Calculate amp
+        # Get the months as a column
+        dssat_dataframe.loc[:, 'cte'] = 1997364
+        dssat_dataframe.loc[:, 'day2'] = dssat_dataframe['day'] + dssat_dataframe['cte']
+        dssat_dataframe.loc[:, 'date'] = (pd.to_datetime((dssat_dataframe.day2 // 1000)) + pd.to_timedelta(dssat_dataframe.day2 % 1000, unit='D'))
+        dssat_dataframe.loc[:, 'month'] = dssat_dataframe.date.dt.month
+        month=dssat_dataframe.loc[:, 'month']
+
+        dssat_dataframe.loc[:, 'tmean'] = dssat_dataframe[['maxt', 'mint']].mean(axis=1)
+        tmeanbymonth = dssat_dataframe.groupby(month)[["tmean"]].mean()
+        maxmaxtbymonth = tmeanbymonth['tmean'].max()
+        minmaxtbymonth = tmeanbymonth['tmean'].min()
+        amp = np.round((maxmaxtbymonth-minmaxtbymonth), decimals=1)
+
+        # Calculate tav
+        tav = tmeanbymonth.mean().tmean.round(decimals=1)
+
+        # Delete df
+        del dssat_dataframe
+        
+        # Configure some header variables
+        current_date = datetime.now().strftime("%d/%m/%Y")
+
+        in_memory_dssat = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=upper(self.data_source), vardata=dssat_df_text_output)
+        df_output_buffer.close()
+
+        full_output_path = outputdir/'{}-{}.WHT'.format(lat, lon)
+        with open(full_output_path, 'w+') as f:
+            self.logger.info('Writting DSSAT file {}'.format(full_output_path))
+            f.write(in_memory_dssat)
 
 def main():
   # Setup logging
