@@ -66,10 +66,10 @@ class Arguments():
 
         self.parser.add_argument(
             "-a", "--action",
-            help="The type of operation to want to perform: download-silo-file (it will only download a particular SILO file from S3 to your local disk), convert-nc4-to-met (it will only convert a local or S3 file from NC4 format to MET), convert-nc4-to-csv(it will only convert a local or S3 file from NC4 format to CSV), download-and-convert-to-met (combines the first two actions)",
+            help="The type of operation to want to perform: download-nc4-file (it will only download a particular NetCDF4 file from the cloud to your local disk, the source can be specified with the --data-source parameter), convert-nc4 (it will only convert a local or cloud file from NC4/HDF5 format to the output format specified with --output-type), generate-climate-file (the default action, it will generate a particular climate file like MET or DSSAT using the parameters passed in as years, climate variable, etc.)",
             type=str,
-            choices=["download-silo-file", "convert-nc4-to-met", "convert-nc4-to-csv", "generate-met-file"],
-            default="convert-nc4-to-csv",
+            choices=["download-nc4-file", "convert-nc4", "generate-climate-file"],
+            default="generate-climate-file",
             required=True
         )
 
@@ -88,6 +88,15 @@ class Arguments():
             #choices=["daily_rain", "monthly_rain", "max_temp", "min_temp", "vp", "vp_deficit", "evap_pan", "evap_syn", "evap_comb", "radiation", "rh_tmax", "rh_tmin", "et_short_crop", "et_tall_crop", "et_morton_actual", "et_morton_potential", "et_morton_wet", "mslp"],
             default="daily_rain",
             required=True
+        )
+
+        self.parser.add_argument(
+            "-s", "--data-source",
+            help="The source of the climate data, which to date can either be SILO (default, Australia only) or NASAPOWER (world wide, not yet implemented)",
+            type=str,
+            choices=["silo", "nasapower"],
+            default="silo",
+            required=False
         )
 
         self.parser.add_argument(
@@ -123,7 +132,7 @@ class Arguments():
 
         self.parser.add_argument(
             "-i", "--input-directory",
-            help="For ""convert-nc4-to-met"" and ""convert-nc4-to-csv"", the file or folder that will be ingested as input in order to extract the specified data. Example: -i ""C:\\some\\folder\\2015.daily_rain.nc"". When NOT specified, the tool assumes it needs to get the data from the cloud. For ""generate-met-file"", the local folder where BestiaPop will find the required NetCDF files to generate the required MET file, example: -i ""C:\\some\\folder\\"". When ""-i"" is used with ""generate-met-file"" then MET creation won't use S3 cloud files as the source.",
+            help="For ""convert-nc4"", the file or folder that will be ingested as input in order to extract the specified data. Example: -i ""C:\\some\\folder\\2015.daily_rain.nc"". When NOT specified, the tool assumes it needs to get the data from the cloud. For ""generate-climate-file"", the local folder where BestiaPop will find the required NetCDF files to generate the required Climate File, example: -i ""C:\\some\\folder\\"". When ""-i"" is used with ""generate-climate-file"" then Climate File creation won't use cloud sources like S3 or API to extract the required data.",
             type=str,
             default=None,
             required=False
@@ -146,9 +155,9 @@ class Arguments():
 
         self.parser.add_argument(
             "-ot", "--output-type",
-            help="This argument will tell the script whether you want the output file to be in CSV or MET format",
+            help="This argument will tell the script whether you want the output file to be in MET, DSSAT (not yet implemented), CSV or JSON format",
             type=str,
-            choices=["met", "csv"],
+            choices=["met", "dssat", "csv", "json"],
             default="met",
             required=False
         )
@@ -180,14 +189,15 @@ class Arguments():
     def get_args(self):
         return self.pargs
 
-class SILO():
+class CLIMATEBEAST():
     """The main class that performs the majority of NetCDF file download and data extraction
 
         Args:
             logger (str): A pointer to an initialized Argparse logger
-            action (str): the type of action to be performed by BestiaPop. Available choices are: download-silo-file (it will only download a particular SILO file from S3 to your local disk), convert-nc4-to-met (it will only convert a local or S3 file from NC4 format to MET), convert-nc4-to-csv(it will only convert a local or S3 file from NC4 format to CSV), download-and-convert-to-met (combines the first two actions)
-            inputpath (str): if the NetCDF files to be processed are stored locally, this path will be used to look for all the files required to extract data from the different year, latitude and longitude ranges
-            outputpath (str): the path where generated output files will be stored
+            action (str): the type of action to be performed by BestiaPop. Available choices are: download-nc4-file (it will only download a particular NetCDF4 file from the cloud to your local disk, the source can be specified with the --data-source parameter), convert-nc4 (it will only convert a local or cloud file from NC4/HDF5 format to the output format specified with --output-type), generate-climate-file (the default action, it will generate a particular climate file like MET or DSSAT using the parameters passed in as years, climate variable, etc.)
+            data_source (str): the source database for the climate data: SILO (Australia only) or NASAPOWER (world wide)
+            input_path (str): if the NetCDF files to be processed are stored locally, this path will be used to look for all the files required to extract data from the different year, latitude and longitude ranges
+            output_path (str): the path where generated output files will be stored
             output_type (str): the type of output
             variable_short_name (str): 
             year_range (str): a starting and ending year separated by a dash, example: "2012-2016". This string gets broken down into numpy.ndarray array afterwards.
@@ -196,10 +206,10 @@ class SILO():
             multiprocessing (bool): a switch that tells BestiaPop to process records using parallel computing with python's multiprocessing module.
 
         Returns:
-            SILO: A class object with access to SILO methods
+            CLIMATEBEAST: A class object with access to CLIMATEBEAST methods
     """
 
-    def __init__(self, logger, action, outputpath, output_type, inputpath, variable_short_name, year_range, lat_range, lon_range, multiprocessing):
+    def __init__(self, logger, action, data_source, output_path, output_type, input_path, variable_short_name, year_range, lat_range, lon_range, multiprocessing):
 
         # Checking that valid input has been provided
         self.logger = logger
@@ -213,17 +223,19 @@ class SILO():
         # Initializing variables
         # For parallel multiprocessing
         self.multiprocessing = multiprocessing
-        self.total_parallel_met_df = pd.DataFrame()
+        self.total_parallel_climate_df = pd.DataFrame()
         self.final_parallel_lon_range = np.empty(0)
-        self.datasource = None
+        self.datas_ource = data_source
 
+        # General
         self.action = action
+        self.data_source = data_source
         self.logger.info('Initializing {}'.format(__name__))
-        if inputpath:
-            self.inputdir = Path(inputpath)
+        if input_path is not None:
+            self.input_path = Path(input_path)
         else:
-            self.inputdir = None
-        self.outputdir = Path(outputpath)
+            self.input_path = None
+        self.outputdir = Path(output_path)
         self.output_type = output_type
         self.variable_short_name = variable_short_name
         
@@ -310,29 +322,32 @@ class SILO():
             self.logger.error('{} is not a folder, please provide a folder path'.format(self.outputdir))
             sys.exit(1)
 
-    def process_records_parallel(self, action):
+    def process_parallel_records(self, action):
         """Perform selected actions on NetCDF4 file in parallel mode 
 
         Args:
-            action {'download-silo-file', 'convert-nc4-to-met', 'convert-nc4-to-csv'} (string): the type of action to be performed in parallel. Example: download-silo-file, convert-nc4-to-met, convert-nc4-to-csv, generate-met-file
+            action {'download-nc4-file', 'convert-nc4', 'generate-climate-file'} (string): the type of action to be performed in parallel. Example: download-nc4-file, convert-nc4, generate-climate-file
         """
 
         # Let's check what's inside the "action" variable and invoke the corresponding function
-        if action == "download-silo-file":
+        if action == "download-nc4-file":
             # TODO
             self.logger.info("Parallel Computing for {} not implemented yet".format(action))
 
-        elif action == "convert-nc4-to-met":
+        elif action == "convert-nc4":
             # TODO
-            self.logger.info("Parallel Computing for {} not implemented yet".format(action))
+            # Allow for the conversion of inputs to multiple outputs at the same time, that would be cool, and in parallel imagine!
 
-        elif action == "convert-nc4-to-csv":
-            # TODO
-            self.logger.info("Parallel Computing for {} not implemented yet".format(action))
+            if self.output_type == "met":
+                self.logger.info('Action {} not implemented yet'.format(action))
+            if self.output_type == "dssat":
+                self.logger.info('Action {} not implemented yet'.format(action))
+            if self.output_type == "csv":
+                self.logger.info('Action {} not implemented yet'.format(action))
+            if self.output_type == "json":
+                self.logger.info('Action {} not implemented yet'.format(action))
 
-        elif action == "generate-met-file":
-            # setup value of datasource property to allow for desicions on downstream functions
-            self.datasource = "SILO"
+        elif action == "generate-climate-file":
 
             # Let's generate a worker pool equal to the amount of cores available
             self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
@@ -351,14 +366,16 @@ class SILO():
             # Pipe all results from the queue to a variable
             final_df_latlon_tuple_list = worker_jobs.get()
 
-            # Generating MET Files
-            # Extract final pre-MET dataframe and final list of coordinates for output processing
+            # Generating Climate Files
+            # Extract final pre-final-output dataframe and final list of coordinates for output processing
             for element in final_df_latlon_tuple_list:
                 # element is a tuple comprised of (pandas_df_with_data, numpy_array_for_coordinates)
-                self.total_parallel_met_df = self.total_parallel_met_df.append(element[0])
+                self.total_parallel_climate_df = self.total_parallel_climate_df.append(element[0])
                 self.final_parallel_lon_range = np.concatenate((self.final_parallel_lon_range, element[1]))
 
             # Generate Output
+            # Obtain an instance of the DATAOUTPUT class
+            self.data_output = DATAOUTPUT(self.logger)
             self.logger.info("Processing Output in Parallel")
             self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
             worker_pool = mp.Pool(mp.cpu_count())
@@ -375,27 +392,27 @@ class SILO():
         """Generate output files using multiple cores
 
         Args:
-            lat_range (numpy.ndarray): A numpy array with all the desired latitudes whose data needs to be extracted and converted to an output format. This function is called by process_records_parallel.
+            lat_range (numpy.ndarray): A numpy array with all the desired latitudes whose data needs to be extracted and converted to an output format. This function is called by process_parallel_records.
         """
 
         try:
-            self.generate_output(
-                final_met_df=self.total_parallel_met_df,
+            self.data_output.generate_output(
+                final_daily_df=self.total_parallel_climate_df,
                 lat_range=[lat_range],
                 lon_range=self.final_parallel_lon_range,
                 outputdir=self.outputdir,
-                output_type="met"
+                output_type=self.output_type
             )
     
         except KeyboardInterrupt:
-            print("\n" + "Parallel process interrupted" + "\n\n")
+            print("\n" + "You scared away the PopBeast. Parallel processing interrupted" + "\n\n")
             sys.exit()
 
     def process_parallel_met(self, year):
         """Process records using multiple cores
 
         Args:
-            year (int): the year to extract information for. This function gets called iteratively by a multiprocessing Pool created by process_records_parallel.
+            year (int): the year to extract information for. This function gets called iteratively by a multiprocessing Pool created by process_parallel_records.
 
         Returns:
             pandas.core.frame.DataFrame: the slice dataframe
@@ -407,12 +424,11 @@ class SILO():
                 variable_short_name=self.variable_short_name, 
                 lat_range=self.lat_range,
                 lon_range=self.lon_range,
-                inputdir=self.inputdir,
-                download_files=False
+                inputdir=self.input_path
             )
 
         except KeyboardInterrupt:
-            print("\n" + "Parallel process interrupted" + "\n\n")
+            print("\n" + "You scared away the PopBeast. Parallel processing interrupted" + "\n\n")
             sys.exit()
 
         return final_df_latlon_tuple_list
@@ -425,61 +441,63 @@ class SILO():
         """
 
         # Let's check what's inside the "action" variable and invoke the corresponding function
-        if action == "download-silo-file":
+        if action == "download-nc4-file":
             self.logger.info('Action {} invoked'.format(action))
-            for year in self.year_range:
-                for variable in self.variable_short_name:
-                    self.logger.info('Downloading SILO file for year {}'.format(year))
-                    self.download_file_from_silo_s3(year, variable, self.outputdir)
 
-        elif action == "convert-nc4-to-met":
-            self.logger.info('Action {} not implemented yet'.format(action))
+            if self.data_source == "silo":
+                for year in self.year_range:
+                    for variable in self.variable_short_name:
+                        self.logger.info('Downloading SILO NetCDF4 file for year {}'.format(year))
+                        self.download_nc4_file_from_cloud(year, variable, self.outputdir)
 
-        elif action == "convert-nc4-to-csv":
-            self.logger.info('Converting files to CSV format')
-            # 1. Let's invoke generate_climate_dataframe with the appropriate options
-            self.generate_climate_dataframe(
-                year_range=self.year_range,
-                variable_short_name=self.variable_short_name, 
-                lat_range=self.lat_range,
-                lon_range=self.lon_range,
-                inputdir=self.inputdir,
-                download_files=False
-            )
+            if self.data_source == "nasapower":
+                for year in self.year_range:
+                    for variable in self.variable_short_name:
+                        self.logger.info('Downloading NASAPOWER NetCDF4 file not implemented yet')
+                        #self.logger.info('Downloading NASAPOWER NetCDF4 file for year {}'.format(year))
+                        #self.download_nc4_file_from_cloud(year, variable, self.outputdir)
 
-        elif action == "generate-met-file":
-            # setup value of datasource property to allow for desicions on downstream functions
-            self.datasource = "SILO"
-            
+        elif action == "convert-nc4":
+            if self.output_type == "met":
+                self.logger.info('Action {} not implemented yet'.format(action))
+            if self.output_type == "dssat":
+                self.logger.info('Action {} not implemented yet'.format(action))
+            if self.output_type == "csv":
+                self.logger.info('Action {} not implemented yet'.format(action))
+            if self.output_type == "json":
+                self.logger.info('Action {} not implemented yet'.format(action))
+
+        elif action == "generate-climate-file":      
             self.logger.info('Downloading data and converting to {} format'.format(self.output_type))
+
             # 1. Let's invoke generate_climate_dataframe with the appropriate options
             final_df_latlon_tuple_list = self.generate_climate_dataframe(
                 year_range=self.year_range,
                 variable_short_name=self.variable_short_name, 
                 lat_range=self.lat_range,
                 lon_range=self.lon_range,
-                inputdir=self.inputdir,
-                download_files=False
+                inputdir=self.input_path
             )
 
             # 2. Generate Output
-            self.total_parallel_met_df = final_df_latlon_tuple_list[0]
-            self.final_parallel_lon_range = final_df_latlon_tuple_list[1]
-            self.generate_output(
-                final_met_df=self.total_parallel_met_df,
+            # Obtain an instance of the DATAOUTPUT class
+            self.data_output = DATAOUTPUT(self.logger)
+            self.total_climate_met_df = final_df_latlon_tuple_list[0]
+            self.final_lon_range = final_df_latlon_tuple_list[1]
+            self.data_output.generate_output(
+                final_daily_df=self.total_climate_met_df,
                 lat_range=self.lat_range,
-                lon_range=self.final_parallel_lon_range,
+                lon_range=self.final_lon_range,
                 outputdir=self.outputdir,
-                output_type="met"
+                output_type=self.output_type
             )
 
-    def load_cdf_file(self, sourcepath, data_category, load_from_s3=True, year=None):
+    def load_cdf_file(self, sourcepath, data_category, year=None):
         """This function loads a NetCDF4 file either from the cloud or locally
 
         Args:
             sourcepath (str): when loading a NetCDF4 file locally, this specifies the source folder. Only the "folder" must be specified, the actual file name will be further qualified by BestiaPop grabbing data from the year and climate variable paramaters passed to the SILO class.
             data_category (str): the short name variable, examples: daily_rain, max_temp, etc.
-            load_from_s3 (bool, optional): This parameter tells BestiaPop whether data should be fetched directly from the cloud. Defaults to True.
             year (int, optional): the year we want to extract data from, it is used to compose the final AWS S3 URL or to qualify the full path to the local NetCDF4 file we would like to load. Defaults to None.
 
         Returns:
@@ -489,9 +507,9 @@ class SILO():
         # This function loads the ".nc" file using the xarray library and
         # stores a pointer to it in "data_dict"
 
-        # Let's first check whether a source file was passed in, otherwise
+        # Let's first check whether a source directory was passed in, otherwise
         # assume we need to fetch from the cloud
-        if load_from_s3 == True:
+        if self.input_path is None:
             self.silo_file = "silo-open-data/annual/{}/{}.{}.nc".format(data_category, year, data_category)
             fs_s3 = s3fs.S3FileSystem(anon=True)
             self.remote_file_obj = fs_s3.open(self.silo_file, mode='rb')
@@ -524,8 +542,8 @@ class SILO():
         # returning our dictionary with relevant values
         return data_dict
 
-    def download_file_from_silo_s3(self, year, variable_short_name, output_path = Path().cwd(), skip_certificate_checks=False):
-        """Downloads a file from AWS S3 bucket
+    def download_nc4_file_from_cloud(self, year, variable_short_name, output_path = Path().cwd(), skip_certificate_checks=False):
+        """Downloads a file from AWS S3 bucket or other cloud API
 
         Args:
             year (int): the year we require data for. SILO stores climate data as separate years like so: daily_rain.2018.nc
@@ -539,60 +557,64 @@ class SILO():
         # For a list of variables to use in "variable_short_name" see
         # https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
         # Most common are: daily_rain, max_temp, min_temp
-        # Example, call the function like: download_file_from_silo_s3(2011, "daily_rain")
+        # Example, call the function like: download_nc4_file_from_cloud(2011, "daily_rain")
         # The above will save to the current directory, however, you can also pass
-        # your own like: download_file_from_silo_s3(2011,'daily_rain','C:\\Downloads\\SILO\2011')
+        # your own like: download_nc4_file_from_cloud(2011,'daily_rain','C:\\Downloads\\SILO\2011')
 
         # We use TQDM to show a progress bar of the download status
 
-        filename = str(year) + "." + variable_short_name + ".nc"
-        url = 'https://s3-ap-southeast-2.amazonaws.com/silo-open-data/annual/{}/{}'.format(variable_short_name, filename)
+        if self.data_source == "silo":
+            filename = str(year) + "." + variable_short_name + ".nc"
+            url = 'https://s3-ap-southeast-2.amazonaws.com/silo-open-data/annual/{}/{}'.format(variable_short_name, filename)
 
-        # Get pointer to URL
-        try:
-            req = requests.get(url, stream=True)
-        except requests.exceptions.SSLError:
-            self.logger.warning("Could not download file due to Certificate issues, potentially caused by your proxy. Relaxing Certificate Checking and attempting again...")
-            self.logger.warning('Skipping SSL certificate checks for {}/{}'.format(variable_short_name, filename))
-            req = requests.get(url, stream=True, verify=False)
+            # Get pointer to URL
+            try:
+                req = requests.get(url, stream=True)
+            except requests.exceptions.SSLError:
+                self.logger.warning("Could not download file due to Certificate issues, potentially caused by your proxy. Relaxing Certificate Checking and attempting again...")
+                self.logger.warning('Skipping SSL certificate checks for {}/{}'.format(variable_short_name, filename))
+                req = requests.get(url, stream=True, verify=False)
 
-        # Set initial file size and total file size
-        first_byte = 0
-        total_file_size = int(req.headers.get("Content-Length", 0))
+            # Set initial file size and total file size
+            first_byte = 0
+            total_file_size = int(req.headers.get("Content-Length", 0))
 
-        if first_byte >= total_file_size:
-            return total_file_size
+            if first_byte >= total_file_size:
+                return total_file_size
 
-        progressbar = tqdm(
-                            total=total_file_size,
-                            initial=first_byte,
-                            unit='B',
-                            ascii=True,
-                            unit_scale=True,
-                            desc=url.split('/')[-1])
+            progressbar = tqdm(
+                                total=total_file_size,
+                                initial=first_byte,
+                                unit='B',
+                                ascii=True,
+                                unit_scale=True,
+                                desc=url.split('/')[-1])
 
-        # Write file in chunks
-        # Let's first check whether the file has already been downloaded
-        # if it has, let's return without downloading it again
-        output_file = output_path/filename
-        if output_file.is_file() == True:
-            if output_file.exists() == True:
-                self.logger.info('File {} already exists. Skipping download...'.format(output_file))
-                return
+            # Write file in chunks
+            # Let's first check whether the file has already been downloaded
+            # if it has, let's return without downloading it again
+            output_file = output_path/filename
+            if output_file.is_file() == True:
+                if output_file.exists() == True:
+                    self.logger.info('File {} already exists. Skipping download...'.format(output_file))
+                    return
 
-        chunk_size = 1024
-        try:
-            with open(output_file, 'ab') as f:
-                self.logger.info('Downloading file {}...'.format(output_file))
-                for chunk in req.iter_content(chunk_size=chunk_size):
-                    if chunk:
-                        f.write(chunk)
-                        progressbar.update(1024)
+            chunk_size = 1024
+            try:
+                with open(output_file, 'ab') as f:
+                    self.logger.info('Downloading file {}...'.format(output_file))
+                    for chunk in req.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            f.write(chunk)
+                            progressbar.update(1024)
 
-        except:
-            self.logger.error("Could not download SILO file")
+            except:
+                self.logger.error("Could not download SILO file")
 
-        progressbar.close()
+            progressbar.close()
+
+        elif self.data_source == "nasapower":
+            None
 
     def get_values_from_array(self, lat, lon, value_array, file_year, variable_short_name):
         """Extract values from a xarray.Dataset object
@@ -620,7 +642,7 @@ class SILO():
             days = np.arange(0,365,1)
 
         # If we are attempting to read from the cloud, use SILO's API instead of Xarray
-        if self.datasource == "SILO":
+        if self.data_source == "silo" and self.input_path is None:
             self.logger.debug("Reading array data using SILO API")
 
             # SILO Climate variable dict
@@ -665,7 +687,13 @@ class SILO():
             
             data_values = [np.round(x['variables'][0]['value'], decimals=1) for x in json_data['data']]
 
-        else:
+        # If we are attempting to read from NasaPower, use it's API
+        elif self.data_source == "nasapower" and self.input_path is None:
+            # TODO: implement nasapower data array extraction
+            self.logger.info("This feature has not been implemented yet")
+        
+        # If we are not extracting data directly from the cloud, then proceed to extract locally from NetCDF4 files
+        elif self.input_path is not None:
             # Using a list comprehension to capture all daily values for the given year and lat/lon combinations
             # We round values to a single decimal
             self.logger.debug("Reading array data from NetCDF with xarray")
@@ -714,28 +742,26 @@ class SILO():
 
         return df
 
-    def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, inputdir, download_files=False, load_from_s3=True):
-        """Creation of the different Climate DataFrames
+    def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, inputdir):
+        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument
 
         Args:
-            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data, each year equates to a different file in the SILO database.
-            variable_short_name (str): the climate variable short name as per SILO nomenclature, see https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
+            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data.
+            variable_short_name (str): the climate variable short name as per SILO or NASAPOWER nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. For NASAPOWER check: XXXXX.
             lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
             lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
-            inputdir (str): when selecting the option to generate MET files from local directories, this parameter must be specified, otherwise data will be fetched directly from cloud S3 buckets.
-            download_files (bool, optional): a switch that tells BestiaPop to first download the file from the cloud before processing them. It may speed up certain data processing times. Defaults to False.
-            load_from_s3 (bool, optional): whether data should be fetched directly from the cloud, whithout having to download a file locally. Defaults to True.
+            inputdir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
 
         Returns:
             tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
         """
 
-        #We will iterate through each "latitude" value and, 
-        #within this loop, we will iterate through all the different 
-        #"longitude" values for a given year. Results for each year
-        #are collected inside the "met_df" with "met_df.append"
-        #At the end, it will output a file with all the contents if
-        #"output_to_file=True" (by default it is "True")
+        # We will iterate through each "latitude" value and, 
+        # within this loop, we will iterate through all the different 
+        # "longitude" values for a given year. Results for each year
+        # are collected inside the "met_df" with "met_df.append"
+        # At the end, it will output a file with all the contents if
+        # "output_to_file=True" (by default it is "True")
 
         self.logger.debug('Generating DataFrames')
 
@@ -750,49 +776,22 @@ class SILO():
         # where there are no values
         empty_lon_coordinates = []
 
-        # Determine whether we are running multithreaded or not for nested loop efficiency
-        # This method will allow us to swap the first two iterator levels in the 4-level nested loop
-        if self.multiprocessing == True:
-            main_loop_var = year_range
-            main_loop_var_desc = "Year"
-            secondary_loop_var = variable_short_name
-            secondary_loop_var_desc = "Climate Variable"
-        else:
-            main_loop_var = variable_short_name
-            main_loop_var_desc = "Climate Variable"
-            secondary_loop_var = year_range
-            secondary_loop_var_desc = "Year"
-
         # Loading and/or Downloading the files
-        for main_element in tqdm(main_loop_var, ascii=True, desc=main_loop_var_desc):
-            if self.multiprocessing == True:
-                year = main_element
-                self.logger.debug('Processing data for year {}'.format(year))
-            else:
-                climate_variable = main_element
+        for year in tqdm(year_range, ascii=True, desc="Year"):
+            self.logger.debug('Processing data for year {}'.format(year))
+
+            for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
                 self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
-
-            for second_element in tqdm(secondary_loop_var, ascii=True, desc=secondary_loop_var_desc):
-                if self.multiprocessing == True:
-                    climate_variable = second_element
-                    self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
-                else:
-                    year = second_element
-                    self.logger.debug('Processing data for year {}'.format(year))
-                    
-
-                # should we download the file first?
-                if download_files == True:
-                    self.logger.debug('Attempting to download files')
-                    self.download_file_from_silo_s3(year, climate_variable, self.outputdir)
 
                 # Opening the target CDF database
                 # We need to check:
-                # (1) should we fetch the data directly from AWS S3 buckets
+                # (1) should we fetch the data directly from the cloud via an API or S3 bucket
                 # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
-                if inputdir:
+
+                # if an input directory was provided
+                if self.input_path is not None:
                     # Setting this variable to false to know how to react at the end of each year loop
-                    load_from_s3 = False
+                    #load_from_s3 = False
 
                     if inputdir.is_dir() == True:
                         sourcefile = str(year) + "." + climate_variable + ".nc"
@@ -804,20 +803,18 @@ class SILO():
                         self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
                         continue
                     
-                    data = self.load_cdf_file(sourcepath, climate_variable, load_from_s3=False)
+                    data = self.load_cdf_file(sourcepath, climate_variable)
 
-                elif load_from_s3 == True:
-                    if self.datasource == "SILO":
-                        self.logger.info("Datasource is: SILO. Reading data using SILO's API")
-                        file_year = year
-                    else:
-                        data = self.load_cdf_file(None, climate_variable, load_from_s3=True, year=year)
-                        file_year = data['data_year']
-                    
-            
+                # if an input directory was not provided
+                # else:
+                    # TODO: improve this routine, BestiaPop should be able to load cloud files if the user wants to...
+                    #self.logger.info("Loading NetCDF4 Files from the Cloud is currently not implemented due to performance issues with data chunking")
+                    #data = self.load_cdf_file(None, climate_variable, year=year)
+                    #file_year = data['data_year']
+
                 # Now iterating over lat and lon combinations
                 # Each year-lat-lon matrix generates a different file
-                
+
                 for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
 
                     for lon in lon_range:
@@ -828,7 +825,7 @@ class SILO():
                         if lon in empty_lon_coordinates:
                             continue
 
-                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, file_year))
+                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, year))
 
                         # here we are checking whether the get_values_from_cdf function
                         # returns with a ValueError (meaning there were no values for
@@ -836,10 +833,12 @@ class SILO():
                         # with an error, we skip this loop and don't produce any output files
                     
                         try:
-                            if self.datasource == "SILO":
-                                var_year_lat_lon_df = self.get_values_from_array(lat, lon, None, file_year, climate_variable)
+                            if self.input_path is None:
+                                if self.data_source == "silo" or self.data_source == "nasapower":
+                                    var_year_lat_lon_df = self.get_values_from_array(lat, lon, None, year, climate_variable)
                             else:
-                                var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], file_year, climate_variable)
+                                # Local file, read from input directory
+                                var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], year, climate_variable)
                         except ValueError:
                             self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
                             self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
@@ -853,12 +852,9 @@ class SILO():
 
                 # We reached the end of the year loop
                 # we need must close the open handle to the s3fs file to free up resources
-                if load_from_s3 == True:
-                    if self.datasource == "SILO":
-                        None
-                    else:
-                        self.remote_file_obj.close()
-                        self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
+                if self.input_path is not None:
+                    self.remote_file_obj.close()
+                    self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
 
         # Remove any empty lon values from longitude array so as to avoid empty MET generation
         empty_lon_array = np.array(empty_lon_coordinates)
@@ -867,13 +863,28 @@ class SILO():
         # Return results
         return (total_met_df, final_lon_range)
 
-    def generate_output(self, final_met_df, lat_range, lon_range, outputdir, output_type="met"):
+class DATAOUTPUT():
+    """This class will provide different methods for data output from climate dataframes
+
+        Args:
+            logger (str): A pointer to an initialized Argparse logger
+
+        Returns:
+            DATAOUTPUT: A class object with access to DATAOUTPUT methods
+    """
+
+    def __init__(self, logger):
+
+        # Setting up class variables
+        self.logger = logger
+        
+    def generate_output(self, final_daily_df, lat_range, lon_range, outputdir, output_type="met"):
         """Generate required Output based on Output Type selected
 
         Args:
-            final_met_df (pandas.core.frame.DataFrame): the pandas daframe containing all the values that are going to be parsed into a specific output
-            lat_range (numpy.ndarray): an array of latitude values to select from the final_met_df
-            lon_range (numpy.ndarray): an array of longitude values to select from the final_met_df
+            final_daily_df (pandas.core.frame.DataFrame): the pandas daframe containing all the values that are going to be parsed into a specific output
+            lat_range (numpy.ndarray): an array of latitude values to select from the final_daily_df
+            lon_range (numpy.ndarray): an array of longitude values to select from the final_daily_df
             outputdir (str): the folder that will be used to store the output files
             output_type (str, optional): the output type: csv (not implemented yet), json(not implemented yet), met. Defaults to "met".
 
@@ -882,13 +893,13 @@ class SILO():
         if output_type == "met":
             # Rename variables
             # Check if final df is empty, if so, then return and do not proceed with the rest of the file
-            if final_met_df.empty == True:
+            if final_daily_df.empty == True:
                 self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
                 return
 
             try: 
-                final_met_df = final_met_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
-                final_met_df = final_met_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
+                final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+                final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
                 
                 self.logger.info("Proceeding to the generation of MET files")
 
@@ -896,7 +907,7 @@ class SILO():
                     
                     for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
 
-                        met_slice_df = final_met_df[(final_met_df.lon == lon) & (final_met_df.lat == lat)]
+                        met_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
                         del met_slice_df['lat']
                         del met_slice_df['lon']
 
@@ -929,7 +940,7 @@ class SILO():
                 csv_file_name = 'mega_final_data_frame.csv'
                 self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
                 full_output_path = outputdir/csv_file_name
-                final_met_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
+                final_daily_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
 
     def generate_met(self, outputdir, met_dataframe, lat, lon):
         """Generate APSIM MET File
@@ -1042,14 +1053,14 @@ def main():
   st = datetime.now()
   logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
   
-  # Grab an instance of the SILO class
-  silo_instance = SILO(logger, pargs.action, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing)
+  # Grab an instance of the CLIMATEBEAST class
+  myclimatebeast = CLIMATEBEAST(logger, pargs.action, pargs.data_source, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing)
   # Start to process the records
   if pargs.multiprocessing == True:
     logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
-    silo_instance.process_records_parallel(pargs.action)
+    myclimatebeast.process_parallel_records(pargs.action)
   else:
-    silo_instance.process_records(pargs.action)
+    myclimatebeast.process_records(pargs.action)
     
   # Capturing end time for debugging purposes
   et = datetime.now()
@@ -1067,5 +1078,5 @@ if __name__ == '__main__':
         sys.exit()
     
     except KeyboardInterrupt:
-        print("\n" + "I've been interrupted by a mortal" + "\n\n")
+        print("\n" + "BestiaPop amazing work has been interrupted by a mortal. Returning to the depths of the earth." + "\n\n")
         sys.exit()
