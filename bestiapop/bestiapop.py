@@ -39,9 +39,10 @@ import logging
 #import netCDF4
 import numpy as np
 import multiprocessing as mp
-import pandas as pd
-import requests
 import os
+import pandas as pd
+import re
+import requests
 import s3fs
 import sys
 import time
@@ -51,6 +52,7 @@ from datetime import datetime as datetime
 from jinja2 import Template
 from numpy import array
 from pathlib import Path
+from tabulate import tabulate
 from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
@@ -1076,9 +1078,7 @@ year day radn maxt mint rain
         # Text alignment looks weird here but it must be left this way for proper output
         dssat_file_j2_template = '''*WEATHER DATA : {{ lat }}-{{ lon }}
 
-@ INSI    LAT   LONG  ELEV TAV  AMP  REFHT WNDHT
-  DIJY   {{ lat }} {{ lon }} -99.0 {{ tav }} {{ amp }} -99.0 -99.0
-@DATE  SRAD  TMAX  TMIN  RAIN
+{{ dssat_header }}
 {{ vardata }}
         '''
 
@@ -1095,7 +1095,11 @@ year day radn maxt mint rain
         del dssat_df_2['year']
         # remove day
         del dssat_df_2['day']
-        dssat_df_2.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
+        # rename columns to match expected values in preparation for "tabulate" and right alignment
+        dssat_df_2 = dssat_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
+        dssat_var_data_ascii = tabulate(dssat_df_2.set_index('@DATE'), tablefmt='plain', numalign='right', stralign='right', headers=dssat_df_2.columns.values)
+        df_output_buffer.write(dssat_var_data_ascii)
+        #dssat_df_2.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
         # delete df copy
         del dssat_df_2
 
@@ -1104,7 +1108,9 @@ year day radn maxt mint rain
         # Replace get rid of carriage return or it will add an extra new line between lines
         df_output_buffer.seek(0)
         dssat_df_text_output = df_output_buffer.getvalue()
-        dssat_df_text_output = dssat_df_text_output.replace("\r\n", "\n")
+        # Get rid of Tabulate's annoying double-space padding
+        dssat_df_text_output = re.sub("^\s\s", "", dssat_df_text_output)
+        dssat_df_text_output = re.sub("\n\s\s", "\n", dssat_df_text_output)        
         
         # Calculate here the tav, amp values
 
@@ -1125,13 +1131,32 @@ year day radn maxt mint rain
         # Calculate tav
         tav = tmeanbymonth.mean().tmean.round(decimals=1)
 
+        # Create DSSAT Header values
+        # We don't have elevation?
+        elev = -99.0
+        dssat_header_dict = {
+            '@ INSI':  ["DIJY"],
+            'LAT':     [lat],
+            'LONG':     [lon],
+            'ELEV':     [elev],
+            'TAV':     [tav],
+            'AMP':     [amp],
+            'REFHT':     [-99.0],
+            'WNDHT':     [-99.0],
+        }
+        df_dssat_header = pd.DataFrame(dssat_header_dict)
+        dssat_header = tabulate(df_dssat_header.set_index('@ INSI'), tablefmt='plain', numalign='right', stralign='right', headers=df_dssat_header.columns.values, floatfmt=('', '.3f', '.3f', '.1f', '.1f', '.1f', '.1f', '.1f'))
+        # Get rid of Tabulate's annoying double-space padding
+        dssat_header = re.sub("^\s\s", "", dssat_header)
+        dssat_header = re.sub("\n\s\s", "\n", dssat_header) 
+
         # Delete df
         del dssat_dataframe
         
         # Configure some header variables
         current_date = datetime.now().strftime("%d/%m/%Y")
 
-        in_memory_dssat = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=self.data_source.upper(), vardata=dssat_df_text_output)
+        in_memory_dssat = j2_template.render(lat=lat, lon=lon, dssat_header=dssat_header, vardata=dssat_df_text_output)
         df_output_buffer.close()
 
         full_output_path = outputdir/'{}-{}.WHT'.format(lat, lon)
