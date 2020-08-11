@@ -352,44 +352,60 @@ class CLIMATEBEAST():
 
         elif action == "generate-climate-file":
 
-            # Let's generate a worker pool equal to the amount of cores available
-            self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
-            worker_pool = mp.Pool(mp.cpu_count())
-            worker_jobs = worker_pool.map_async(self.process_parallel_met, self.year_range)
-            worker_pool.close()
-            #worker_pool.join() # block until all processes have finished
+            try:
+                # Let's generate a worker pool equal to the amount of cores available
+                self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
 
-            while True:
-                if not worker_jobs.ready():
-                    self.logger.info("Parallel Jobs left: {}".format(worker_jobs._number_left))
-                    worker_jobs.wait(20)
-                else:
-                    break
+                # Setting a MultiProcessing Manager to be able to terminate the pool of workers
+                # if a SIGKILL is received from the keyboard whilst running inside a worker process
+                # Thanks!: https://stackoverflow.com/questions/26068819/how-to-kill-all-pool-workers-in-multiprocess
+                multiproc_manager = mp.Manager()
+                self.multiproc_event = multiproc_manager.Event()
+                worker_pool = mp.Pool(mp.cpu_count())
+                worker_jobs = worker_pool.map_async(self.process_parallel_met, self.year_range)
+                worker_pool.close()
+                #worker_pool.join() # block until all processes have finished
 
-            # Pipe all results from the queue to a variable
-            final_df_latlon_tuple_list = worker_jobs.get()
+                while True:
+                    if not worker_jobs.ready():
+                        self.logger.info("Parallel Jobs left: {}".format(worker_jobs._number_left))
+                        worker_jobs.wait(20)
+                    else:
+                        break
+                
+                # multiproc_event.wait()
+                # worker_pool.terminate()
 
-            # Generating Climate Files
-            # Extract final pre-final-output dataframe and final list of coordinates for output processing
-            for element in final_df_latlon_tuple_list:
-                # element is a tuple comprised of (pandas_df_with_data, numpy_array_for_coordinates)
-                self.total_parallel_climate_df = self.total_parallel_climate_df.append(element[0])
-                self.final_parallel_lon_range = np.concatenate((self.final_parallel_lon_range, element[1]))
+                # Pipe all results from the queue to a variable
+                final_df_latlon_tuple_list = worker_jobs.get()
 
-            # Generate Output
-            # Obtain an instance of the DATAOUTPUT class
-            self.data_output = DATAOUTPUT(self.logger, self.data_source)
-            self.logger.info("Processing Output in Parallel")
-            self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
-            worker_pool = mp.Pool(mp.cpu_count())
-            worker_jobs = worker_pool.map_async(self.process_parallel_output, self.lat_range)
-            worker_pool.close()
-            while True:
-                if not worker_jobs.ready():
-                    self.logger.info("Output Generator - Parallel Jobs left: {}".format(worker_jobs._number_left))
-                    worker_jobs.wait(5)
-                else:
-                    break
+                # Generating Climate Files
+                # Extract final pre-final-output dataframe and final list of coordinates for output processing
+                for element in final_df_latlon_tuple_list:
+                    # element is a tuple comprised of (pandas_df_with_data, numpy_array_for_coordinates)
+                    self.total_parallel_climate_df = self.total_parallel_climate_df.append(element[0])
+                    self.final_parallel_lon_range = np.concatenate((self.final_parallel_lon_range, element[1]))
+
+                # Generate Output
+                # Obtain an instance of the DATAOUTPUT class
+                self.data_output = DATAOUTPUT(self.logger, self.data_source)
+                self.logger.info("Processing Output in Parallel")
+                self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
+                worker_pool = mp.Pool(mp.cpu_count())
+                worker_jobs = worker_pool.map_async(self.process_parallel_output, self.lat_range)
+                worker_pool.close()
+                while True:
+                    if not worker_jobs.ready():
+                        self.logger.info("Output Generator - Parallel Jobs left: {}".format(worker_jobs._number_left))
+                        worker_jobs.wait(5)
+                    else:
+                        break
+
+            except KeyboardInterrupt:
+                #print("The ClimateBeast parallel processing has been interrupted. Need to drink some volcanic lava to help with stress." + "\n\n")
+                worker_pool.terminate()
+                worker_pool.close()
+                raise Exception('BestiaPopParallelProcessInterrupted')
 
     def process_parallel_output(self, lat_range):
         """Generate output files using multiple cores
@@ -408,8 +424,8 @@ class CLIMATEBEAST():
             )
     
         except KeyboardInterrupt:
-            print("\n" + "You scared away the PopBeast. Parallel processing interrupted" + "\n\n")
-            sys.exit()
+            print("\x1b[47m \x1b[32mYou scared away the PopBeast. Parallel processing interrupted\x1b[0m \x1b[39m" + "\n")
+            self.multiproc_event.set()
 
     def process_parallel_met(self, year):
         """Process records using multiple cores
@@ -431,8 +447,8 @@ class CLIMATEBEAST():
             )
 
         except KeyboardInterrupt:
-            print("\n" + "You scared away the PopBeast. Parallel processing interrupted" + "\n\n")
-            sys.exit()
+            print("\n" + "\x1b[47m \x1b[32mYou scared away the PopBeast. Parallel processing interrupted\x1b[0m \x1b[39m" + "\n\n")
+            self.multiproc_event.set()
 
         return final_df_latlon_tuple_list
 
