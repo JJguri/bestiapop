@@ -13,30 +13,33 @@ dash, whereas multiple climate variables are separated by spaces*
 
 .. code:: batch
 
-      python bestiapop.py -a download-silo-file -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
+      python bestiapop.py -a download-nc4-file --data-source "SILO" -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 
-Generate MET output files from AWS S3 for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Generate MET output files from SILO cloud API for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Note**:
 
--  the resulting MET files will be placed in the output directory
-   specified by "-o"
--  add *-ou csv* at the end of the script if a csv is required as output
-   file. The code generates MET files by default.
+-  the resulting MET files will be placed in the output directory specified by "-o"
+-  the "-ot" parameter specifies the output type: met, dssat, csv or json.
 
 .. code-block:: batch
 
-   python bestiapop.py -a generate-met-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\
+   python bestiapop.py -a generate-climate-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -ot "met" -o C:\some\output\folder\
+
+Generate DSSAT output files from SILO cloud API for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: batch
+
+   python bestiapop.py -a generate-climate-file -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -ot "dssat" -o C:\some\output\folder\
 
 Generate MET output files from Local Disk for Radiation, Min Temperature, Max Temperature and Daily Rain for years 1990 to 2010
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Note**:
 
--  all the required NetCDF files should be placed in a single directory
-   which is then referenced with the *--input* parameter. The directory
-   should have the following structure:
+-  all the required NetCDF files should be placed in a single directory which is then referenced with the *--input* parameter. The directory should have the following structure:
 
 .. code:: c
 
@@ -57,14 +60,7 @@ Generate MET output files from Local Disk for Radiation, Min Temperature, Max Te
 
 .. code:: batch
 
-   python bestiapop.py -a generate-met-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -o C:\some\output\folder\
-
-Generate a CSV containing daily_rain data for year 2015 for a range of lat/lon
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code:: batch
-
-   python bestiapop.py -a convert-nc4-to-csv -y 2015 -c daily_rain -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\folder
+   python bestiapop.py -a generate-climate-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -ot "met" -o C:\some\output\folder\
 
 PARALLEL COMPUTING
 ------------------
@@ -98,12 +94,11 @@ Real performance improvements from using multiprocessing can be achieved
 when processing local NetCDF4 files, i.e. when passing the
 ``-i / --input-dir`` parameter to ``bestiapop.py``.
 
-MULTIPROCESSING CASE 1 - Generate MET output files from AWS S3 for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+MULTIPROCESSING CASE 1 - Generate MET output files reading data directly from the cloud for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: batch
 
-   python bestiapop.py -a generate-met-file -y "2008-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -m
+   python bestiapop.py -a generate-climate-file -y "2008-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -ot "met" -o C:\some\output\folder\ -m
 
-Here, the ``-m`` at the end will engage multiple cores to process the
-tasks. If you have 8 available cores
+Here, the ``-m`` at the end will engage multiple cores to process the tasks. If you have 8 available cores it will create 8 separate processes to download the data from the cloud and will then use 8 separate processes to generate the output files.

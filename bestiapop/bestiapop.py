@@ -157,7 +157,7 @@ class Arguments():
 
         self.parser.add_argument(
             "-ot", "--output-type",
-            help="This argument will tell the script whether you want the output file to be in MET, DSSAT (not yet implemented), CSV or JSON format",
+            help="This argument will tell the script whether you want the output file to be in MET (default), DSSAT, CSV (not yet implemented) or JSON (not yet implemented) format",
             type=str,
             choices=["met", "dssat", "csv", "json"],
             default="met",
@@ -856,8 +856,12 @@ class CLIMATEBEAST():
                 # We reached the end of the year loop
                 # we need must close the open handle to the s3fs file to free up resources
                 if self.input_path is None:
-                    self.remote_file_obj.close()
-                    self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
+                    try:
+                        self.remote_file_obj.close()
+                        self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
+                    except AttributeError:
+                        self.logger.debug("Closing handle to remote s3fs file not required. Using an API endpoint instead of a cloud NetCDF4 file")
+
 
         # Remove any empty lon values from longitude array so as to avoid empty MET generation
         empty_lon_array = np.array(empty_lon_coordinates)
