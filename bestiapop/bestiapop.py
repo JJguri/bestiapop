@@ -2,7 +2,7 @@
 
 '''
  NAME: BESTIAPOP (POPBEAST)
- VERSION: 2.5
+ VERSION: 3.0
  DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
  DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
  DESCRIPTION: A python package to automatically generate gridded climate data for APSIM (to be extended for any crop models)
@@ -21,6 +21,7 @@
     v2.1 - Generating final MET file
     v2.2 - Adding commandline parameter to allow for the selection of output type: either MET or CSV
     v2.5 - Implemented MultiProcessing for MET file generation, fixed Pandas warnings, decoupled output generation from data carving, added "days" counter for proper output when tasks run longer than 24hs.
+    v3.0 - Major version jump due to complete restructuring of BestiaPop. Broke down the single script into multiple ones according to functionalities to make it more extensible and prepare for future enhancements. New features: ****
     
  TODO:
     1. Implement a new functionality in APSIM that automatically executes this code by only providing lat and lon values (and generating a MET)
@@ -34,7 +35,6 @@
 import argparse
 import calendar
 import h5netcdf
-import io
 import logging
 #import netCDF4
 import numpy as np
@@ -48,11 +48,14 @@ import sys
 import time
 import warnings
 import xarray as xr
+
+from connectors import (silo_connector, nasapower_connector)
+from common import bestiapop_utils
+from producers import output
+
 from datetime import datetime as datetime
-from jinja2 import Template
 from numpy import array
 from pathlib import Path
-from tabulate import tabulate
 from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
@@ -201,7 +204,7 @@ class CLIMATEBEAST():
             input_path (str): if the NetCDF files to be processed are stored locally, this path will be used to look for all the files required to extract data from the different year, latitude and longitude ranges
             output_path (str): the path where generated output files will be stored
             output_type (str): the type of output
-            variable_short_name (str): 
+            climate_variables (str): 
             year_range (str): a starting and ending year separated by a dash, example: "2012-2016". This string gets broken down into numpy.ndarray array afterwards.
             lat_range (str): a start and end latitude separated by a "space", example: "-41.15 -41.05". This string gets broken down into numpy.ndarray array afterwards. 
             lon_range (str): a start and end latitude separated by a "space", example: "145.5 145.6". This string gets broken down into numpy.ndarray array afterwards.
@@ -211,7 +214,7 @@ class CLIMATEBEAST():
             CLIMATEBEAST: A class object with access to CLIMATEBEAST methods
     """
 
-    def __init__(self, logger, action, data_source, output_path, output_type, input_path, variable_short_name, year_range, lat_range, lon_range, multiprocessing):
+    def __init__(self, logger, action, data_source, output_path, output_type, input_path, climate_variables, year_range, lat_range, lon_range, multiprocessing):
 
         # Checking that valid input has been provided
         self.logger = logger
@@ -239,80 +242,18 @@ class CLIMATEBEAST():
             self.input_path = None
         self.outputdir = Path(output_path)
         self.output_type = output_type
-        self.variable_short_name = variable_short_name
+        self.climate_variables = climate_variables
         
-        # Check whether a year range with "-" was provided for the year.
-        # If this is the case, generate a list out of it
-        # TODO: handle lists of discontinuous year ranges like [1999-2001,2005-2019]
-        if "-" in year_range:
-            first_year = int(year_range.split("-")[0])
-            last_year = int(year_range.split("-")[1]) + 1
-            year_range = np.arange(first_year,last_year,1)
-        else:
-            year_range = [int(year_range)]
+        # Get a handle to an instance of BestiaPop Utilities
+        my_beast_utils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
 
-        self.year_range = year_range
+        # Obtain year range list
+        self.year_range = my_beast_utils.get_years_list(year_range)
 
-        if action != "download-nc4-file":
-            # Check whether a lat and lon range separated by a space was provided.
-            # If this is the case, generate a list out of it
-            # NOTE: for some reason I get a list within a list from the argparse...
-            if isinstance(lat_range, np.ndarray):
-                # The user passed in a file with an array of latitudes
-                # this file was processed during the argument parsing phase
-                # and a numpy.ndarray was returned. Nothing else to do.
-                self.lat_range = lat_range
-            else:
-                if len(lat_range) > 1:
-                    if lat_range[0] < 0 and lat_range[1] < 0:
-                        if lat_range[0] > lat_range[1]:
-                            # We are clearly dealing with negative numbers
-                            # User has mistakenly swapped the order of numbers
-                            # we need to silently swap them back
-                            first_lat = lat_range[1]
-                            last_lat = lat_range[0]
-                        else:
-                            first_lat = lat_range[0]
-                            last_lat = lat_range[1]
-
-                    # Find absolute distance to account for missing values
-                    # numpy.arange erratic behaviour with floats: https://numpy.org/doc/stable/reference/generated/numpy.arange.html
-                    lat_value_count = np.round((abs(first_lat-last_lat) / 0.05), decimals=0)
-                    lat_range = np.arange(first_lat,last_lat,0.05).round(decimals=2)
-                    
-                    # Check the number spread
-                    if int(lat_value_count+1) != len(lat_range):
-                        lat_range = np.arange(first_lat,np.round((last_lat+0.05), decimals=2),0.05).round(decimals=2).tolist()
-                        if int(lat_value_count+1) != len(lat_range):
-                            # Must get rid of last float
-                            lat_range = np.delete(lat_range,(len(lat_range)-1),0)
-                
-                self.lat_range = lat_range
-
-            if lon_range:
-                if len(lon_range) > 1:
-                    if lon_range[0] > lon_range[1]:
-                        # User has mistakenly swapped the order of numbers
-                        # we need to silently swap them back
-                        first_lon = lon_range[1]
-                        last_lon = lon_range[0]
-                    else:
-                        first_lon = lon_range[0]
-                        last_lon = lon_range[1]
-
-                    # Find absolute distance to account for missing values
-                    # numpy.arange erratic behaviour with floats: https://numpy.org/doc/stable/reference/generated/numpy.arange.html
-                    lon_value_count = np.round((abs(first_lon-last_lon) / 0.05), decimals=0)
-                    lon_range = np.arange(first_lon,last_lon,0.05).round(decimals=2)
-
-                    # Check the number spread
-                    if int(lon_value_count+1) != len(lon_range):
-                        lon_range = np.arange(first_lon,np.round((last_lon+0.05), decimals=2),0.05).round(decimals=2).tolist()
-                        if int(lat_value_count+1) != len(lat_range):
-                            # Must get rid of last float
-                            lon_range = np.delete(lon_range,(len(lon_range)-1),0)
-
-                self.lon_range = lon_range
+        # Obtain coordinates range
+        # The granularity of the returned range will depend whether the source data is SILO or NASA POWER
+        self.lat_range = my_beast_utils.get_coordinate_numpy_list(lat_range, "latitude", self.data_source)
+        self.lon_range = my_beast_utils.get_coordinate_numpy_list(lon_range, "longitude", self.data_source)
 
         # Validate output directory
         if self.outputdir.is_dir() == True:
@@ -388,7 +329,7 @@ class CLIMATEBEAST():
 
                 # Generate Output
                 # Obtain an instance of the DATAOUTPUT class
-                self.data_output = DATAOUTPUT(self.logger, self.data_source)
+                self.data_output = output.DATAOUTPUT(self.data_source)
                 self.logger.info("Processing Output in Parallel")
                 self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
                 worker_pool = mp.Pool(mp.cpu_count())
@@ -438,13 +379,23 @@ class CLIMATEBEAST():
         """
 
         try:
-            final_df_latlon_tuple_list = self.generate_climate_dataframe(
-                year_range=[year],
-                variable_short_name=self.variable_short_name, 
-                lat_range=self.lat_range,
-                lon_range=self.lon_range,
-                inputdir=self.input_path
-            )
+            if self.input_path is None:
+                final_df_latlon_tuple_list = self.generate_climate_dataframe_from_cloud_api(
+                    year_range=[year],
+                    climate_variables=self.climate_variables, 
+                    lat_range=self.lat_range,
+                    lon_range=self.lon_range,
+                    input_dir=self.input_path
+                )
+
+            else:
+                final_df_latlon_tuple_list = self.generate_climate_dataframe_from_disk(
+                    year_range=[year],
+                    climate_variables=self.climate_variables, 
+                    lat_range=self.lat_range,
+                    lon_range=self.lon_range,
+                    input_dir=self.input_path
+                )
 
         except KeyboardInterrupt:
             print("\n" + "\x1b[47m \x1b[32mYou scared away the PopBeast. Parallel processing interrupted\x1b[0m \x1b[39m" + "\n\n")
@@ -463,15 +414,18 @@ class CLIMATEBEAST():
         if action == "download-nc4-file":
             self.logger.info('Action {} invoked'.format(action))
 
+            # Creating instances of required BestiaPop classes
+            beastutils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
+
             if self.data_source == "silo":
                 for year in self.year_range:
-                    for variable in self.variable_short_name:
+                    for variable in self.climate_variables:
                         self.logger.info('Downloading SILO NetCDF4 file for year {}'.format(year))
-                        self.download_nc4_file_from_cloud(year, variable, self.outputdir)
+                        beastutils.download_nc4_file_from_cloud(year, variable, self.outputdir)
 
             if self.data_source == "nasapower":
                 for year in self.year_range:
-                    for variable in self.variable_short_name:
+                    for variable in self.climate_variables:
                         self.logger.info('Downloading NASAPOWER NetCDF4 file not implemented yet')
                         #self.logger.info('Downloading NASAPOWER NetCDF4 file for year {}'.format(year))
                         #self.download_nc4_file_from_cloud(year, variable, self.outputdir)
@@ -487,20 +441,40 @@ class CLIMATEBEAST():
                 self.logger.info('Action {} not implemented yet'.format(action))
 
         elif action == "generate-climate-file":      
-            self.logger.info('Downloading data and converting to {} format'.format(self.output_type))
+            self.logger.info('Extracting data and converting to {} format'.format(self.output_type))
 
             # 1. Let's invoke generate_climate_dataframe with the appropriate options
-            final_df_latlon_tuple_list = self.generate_climate_dataframe(
-                year_range=self.year_range,
-                variable_short_name=self.variable_short_name, 
-                lat_range=self.lat_range,
-                lon_range=self.lon_range,
-                inputdir=self.input_path
-            )
+            if self.input_path is None:
+                if self.data_source == "silo":
+                    final_df_latlon_tuple_list = self.generate_climate_dataframe_from_silo_cloud_api(
+                        year_range=self.year_range,
+                        climate_variables=self.climate_variables, 
+                        lat_range=self.lat_range,
+                        lon_range=self.lon_range,
+                        input_dir=self.input_path
+                    )
+
+                elif self.data_source == "nasapower":
+                    final_df_latlon_tuple_list = self.generate_climate_dataframe_from_nasapower_cloud_api(
+                        year_range=self.year_range,
+                        climate_variables=self.climate_variables, 
+                        lat_range=self.lat_range,
+                        lon_range=self.lon_range,
+                        input_dir=self.input_path
+                    )
+            else:
+                final_df_latlon_tuple_list = self.generate_climate_dataframe_from_disk(
+                    year_range=self.year_range,
+                    climate_variables=self.climate_variables, 
+                    lat_range=self.lat_range,
+                    lon_range=self.lon_range,
+                    input_dir=self.input_path
+                )
+
 
             # 2. Generate Output
             # Obtain an instance of the DATAOUTPUT class
-            self.data_output = DATAOUTPUT(self.logger, self.data_source)
+            self.data_output = output.DATAOUTPUT(self.data_source)
             self.total_climate_met_df = final_df_latlon_tuple_list[0]
             self.final_lon_range = final_df_latlon_tuple_list[1]
             self.data_output.generate_output(
@@ -511,266 +485,177 @@ class CLIMATEBEAST():
                 output_type=self.output_type
             )
 
-    def load_cdf_file(self, sourcepath, data_category, year=None):
-        """This function loads a NetCDF4 file either from the cloud or locally
-
-        Args:
-            sourcepath (str): when loading a NetCDF4 file locally, this specifies the source folder. Only the "folder" must be specified, the actual file name will be further qualified by BestiaPop grabbing data from the year and climate variable paramaters passed to the SILO class.
-            data_category (str): the short name variable, examples: daily_rain, max_temp, etc.
-            year (int, optional): the year we want to extract data from, it is used to compose the final AWS S3 URL or to qualify the full path to the local NetCDF4 file we would like to load. Defaults to None.
-
-        Returns:
-            dict: a dictionary containing two items, "value_array" which is a xarray DataSet object and "data_year" which is the year that the NetCDF4 file contains data for, extracted by looking at the contents of the NetCDF4 file itself.
-        """
-
-        # This function loads the ".nc" file using the xarray library and
-        # stores a pointer to it in "data_dict"
-
-        # Let's first check whether a source directory was passed in, otherwise
-        # assume we need to fetch from the cloud
-        if self.input_path is None:
-            self.silo_file = "silo-open-data/annual/{}/{}.{}.nc".format(data_category, year, data_category)
-            fs_s3 = s3fs.S3FileSystem(anon=True)
-            self.remote_file_obj = fs_s3.open(self.silo_file, mode='rb')
-            da_data_handle = xr.open_dataset(self.remote_file_obj, engine='h5netcdf')
-            self.logger.debug('Loaded netCDF4 file {} from Amazon S3'.format(self.silo_file))
-
-        else:
-            # This function expects that we will pass the value series
-            # we are looking for in the "data_category" parameter
-            # So if we want the function to return all values for 
-            # rain we shall call the function as:
-            # load_file(sourcepath, sourcefile, 'daily_rain')
-            self.logger.info('Loading netCDF4 file {} from Disk'.format(sourcepath))
-            da_data_handle = xr.open_dataset(sourcepath, engine='h5netcdf')
-
-        # Extracting the "year" from within the file itself.
-        # For this we get a sample of the values and then 
-        # convert the first value to a year. Assuming we are dealing
-        # with single year files as per SILO S3 files, this shouldn't
-        # represent a problem
-        da_sample = da_data_handle.time.head().values[1]
-        data_year = da_sample.astype('datetime64[Y]').astype(int) + 1970
-
-        # Storing the pointer to the data and the year in a dict
-        data_dict = {
-            "value_array": da_data_handle, 
-            "data_year": data_year,            
-        }
-
-        # returning our dictionary with relevant values
-        return data_dict
-
-    def download_nc4_file_from_cloud(self, year, variable_short_name, output_path = Path().cwd(), skip_certificate_checks=False):
-        """Downloads a file from AWS S3 bucket or other cloud API
-
-        Args:
-            year (int): the year we require data for. SILO stores climate data as separate years like so: daily_rain.2018.nc
-            variable_short_name (str): the climate variable short name as per SILO nomenclature, see https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
-            output_path (str, optional): The target folder where files should be downloaded. Defaults to Path().cwd().
-            skip_certificate_checks (bool, optional): ask the requests library to skip certificate checks, useful when attempting to download files behind a proxy. Defaults to False.
-
-        """
-
-        # This function connects to the public S3 site for SILO and downloads the specified file
-        # For a list of variables to use in "variable_short_name" see
-        # https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
-        # Most common are: daily_rain, max_temp, min_temp
-        # Example, call the function like: download_nc4_file_from_cloud(2011, "daily_rain")
-        # The above will save to the current directory, however, you can also pass
-        # your own like: download_nc4_file_from_cloud(2011,'daily_rain','C:\\Downloads\\SILO\2011')
-
-        # We use TQDM to show a progress bar of the download status
-
-        if self.data_source == "silo":
-            filename = str(year) + "." + variable_short_name + ".nc"
-            url = 'https://s3-ap-southeast-2.amazonaws.com/silo-open-data/annual/{}/{}'.format(variable_short_name, filename)
-
-            # Get pointer to URL
-            try:
-                req = requests.get(url, stream=True)
-            except requests.exceptions.SSLError:
-                self.logger.warning("Could not download file due to Certificate issues, potentially caused by your proxy. Relaxing Certificate Checking and attempting again...")
-                self.logger.warning('Skipping SSL certificate checks for {}/{}'.format(variable_short_name, filename))
-                req = requests.get(url, stream=True, verify=False)
-
-            # Set initial file size and total file size
-            first_byte = 0
-            total_file_size = int(req.headers.get("Content-Length", 0))
-
-            if first_byte >= total_file_size:
-                return total_file_size
-
-            progressbar = tqdm(
-                                total=total_file_size,
-                                initial=first_byte,
-                                unit='B',
-                                ascii=True,
-                                unit_scale=True,
-                                desc=url.split('/')[-1])
-
-            # Write file in chunks
-            # Let's first check whether the file has already been downloaded
-            # if it has, let's return without downloading it again
-            output_file = output_path/filename
-            if output_file.is_file() == True:
-                if output_file.exists() == True:
-                    self.logger.info('File {} already exists. Skipping download...'.format(output_file))
-                    return
-
-            chunk_size = 1024
-            try:
-                with open(output_file, 'ab') as f:
-                    self.logger.info('Downloading file {}...'.format(output_file))
-                    for chunk in req.iter_content(chunk_size=chunk_size):
-                        if chunk:
-                            f.write(chunk)
-                            progressbar.update(1024)
-
-            except:
-                self.logger.error("Could not download SILO file")
-
-            progressbar.close()
-
-        elif self.data_source == "nasapower":
-            None
-
-    def get_values_from_array(self, lat, lon, value_array, file_year, variable_short_name):
-        """Extract values from a xarray.Dataset object
-
-        Args:
-            lat (float): the latitude that values should be returned for
-            lon (float): the longitude that values should be returned for
-            value_array (xarray.Dataset): the xarray Dataset object to extract values from
-            file_year (string): the year of the file
-            variable_short_name (string): the climate variable short name as per SILO nomenclature, see https://www.longpaddock.qld.gov.au/silo/about/climate-variables/
-
-        Raises:
-            ValueError: if there was "NO" data available for all days under a particular combination of lat & lon, then the total values collected should equal "0" (meaning, there was no data for that point in the grid). If this is the case, then the function will simply return with a "no_values" message and signal the calling function that it should ignore this particular year-lat-lon combination.
-
-        Returns:
-            pandas.core.frame.DataFrame: a dataframe containing 5 columns: the Julian day, the grid data value for that day, the year, the latitude, the longitude.
-        """
-
-        # This function will use xarray to extract a slice of time data for a combination of lat and lon values
-
-        # Checking if this is a leap-year  
-        if (( file_year%400 == 0) or (( file_year%4 == 0 ) and ( file_year%100 != 0))):
-            days = np.arange(0,366,1)
-        else: 
-            days = np.arange(0,365,1)
-
-        # If we are attempting to read from the cloud, use SILO's API instead of Xarray
-        if self.data_source == "silo" and self.input_path is None:
-            self.logger.debug("Reading array data using SILO API")
-
-            # SILO Climate variable dict
-            silo_climate_variable_code = {
-                "daily_rain":           "R", 
-                "monthly_rain":         "R",
-                "max_temp":             "X",
-                "min_temp":             "N",
-                "vp":                   "V",
-                "vp_deficit":           "D",
-                "evap_pan":             "E",
-                "evap_syn":             "S",
-                "evap_comb":            "C",
-                "radiation":            "J",
-                "rh_tmax":              "H",
-                "rh_tmin":              "G",
-                "et_short_crop":        "F",
-                "et_tall_crop":         "T",
-                "et_morton_actual":     "A",
-                "et_morton_potential":  "P",
-                "et_morton_wet":        "W",
-                "mslp":                 "M"
-            }
-
-            silo_api_url = "https://www.longpaddock.qld.gov.au/cgi-bin/silo/DataDrillDataset.php?lat={}&lon={}&format=json&start={}0101&finish={}1231&username=bestiapop@bestiapop.com&password=gui&comment={}".format(lat, lon, file_year, file_year, silo_climate_variable_code[variable_short_name])
-            r = requests.get(silo_api_url)
-            json_data = r.json()
-            # The shape of returned data from SILO is: 
-            '''
-            'location': {'latitude': -41.1,
-            'longitude': 145.5,
-            'elevation': 298.1,
-            'reference': 'R'},
-            'extracted': 20200808,
-            'data': [
-                {'date': '2003-01-03',
-                'variables': [{'source': 25, 'value': 1.4, 'variable_code': 'daily_rain'}]},
-                {'date': '2003-01-04',
-                'variables': [{'source': 25, 'value': 1.8, 'variable_code': 'daily_rain'}]}, ...
-            ]
-            '''
-            
-            data_values = [np.round(x['variables'][0]['value'], decimals=1) for x in json_data['data']]
-
-        # If we are attempting to read from NasaPower, use it's API
-        elif self.data_source == "nasapower" and self.input_path is None:
-            # TODO: implement nasapower data array extraction
-            self.logger.info("This feature has not been implemented yet")
-        
-        # If we are not extracting data directly from the cloud, then proceed to extract locally from NetCDF4 files
-        elif self.input_path is not None:
-            # Using a list comprehension to capture all daily values for the given year and lat/lon combinations
-            # We round values to a single decimal
-            self.logger.debug("Reading array data from NetCDF with xarray")
-
-            # Alternatively: data_values = [np.round(x, decimals=1) for x in (value_array[variable_short_name].loc[dict(lat=lat, lon=lon)]).values]
-            data_values = [np.round(x, decimals=1) for x in value_array[variable_short_name].sel(lat=lat, lon=lon).values]
-
-            # closing handle to xarray DataSet
-            value_array.close()
-
-        # We have captured all 365 or 366 values, however, they could all be NaN (non existent)
-        # If this is the case, skip it
-        # NOTE: we could have filtered this in the list comprehension above, however
-        # we chose to do it here for code readability.
-        # We assume that, if the first value is "NaN" then the rest of the 364 values will also be null
-        # data_values = [x for x in data_values if np.isnan(x) != True]
-
-        if np.isnan(data_values[1]) == True:
-            data_values = []
-
-        # we need to get the total amount of values collected
-        # if there was "NO" data available for all days under a particular combination
-        # of lat & lon, then the total values collected should equal "0"
-        # (meaning, there was no data for that point in the grid)
-        # If this is the case, then the function will simply return with
-        # a "no_values"
-        if len(data_values) == 0:
-            # DEBUG - ERASE
-            self.logger.warning("THERE ARE NO VALUES FOR LAT {} LON {} VARIABLE {}".format(lat, lon, variable_short_name))
-            raise ValueError('no_data_for_lat_lon')
-
-        # now we need to fill a PANDAS DataFrame with the lists we've been collecting
-        pandas_dict_of_items = {'days': days,
-                                variable_short_name: data_values}
-
-        df = pd.DataFrame.from_dict(pandas_dict_of_items)
-
-        # making the julian day match the expected
-        df['days'] += 1
-
-        # adding a column with the "year" to the df
-        # so as to prepare it for export to other formats (CSV, MET, etc.)
-        df.insert(0, 'year', file_year)
-        df.insert(0, 'lat', lat)
-        df.insert(0, 'lon', lon)
-
-        return df
-
-    def generate_climate_dataframe(self, year_range, variable_short_name, lat_range, lon_range, inputdir):
-        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument
+    def generate_climate_dataframe_from_silo_cloud_api(self, year_range, climate_variables, lat_range, lon_range, input_dir):
+        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument. It will leverage SILO or NASAPOWER API to do it.
 
         Args:
             year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data.
-            variable_short_name (str): the climate variable short name as per SILO or NASAPOWER nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. For NASAPOWER check: XXXXX.
+            climate_variables (str): the climate variable short name as per SILO or NASAPOWER nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. For NASAPOWER check: XXXXX.
             lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
             lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
-            inputdir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
+            input_dir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
 
+        Returns:
+            tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
+        """
+
+        # We will iterate through each "latitude" value and, 
+        # within this loop, we will iterate through all the different 
+        # "longitude" values for a given year. Results for each year
+        # are collected inside the "climate_df" with "climate_df.append"
+        # At the end, it will output a file with all the contents if
+        # "output_to_file=True" (by default it is "True")
+
+        self.logger.debug('Generating DataFrames')
+
+        # empty df to append all the climate_df to
+        total_climate_df = pd.DataFrame()
+
+        # create an empty list to keep track of lon coordinates
+        # where there are no values
+        empty_lon_coordinates = []
+
+        # Initialize BestiaPop required class instances
+        silo = silo_connector.SILOClimateDataConnector(data_source=self.data_source, input_path=self.input_path, climate_variables=climate_variables)
+
+        # Loading and/or Downloading the files
+        for year in tqdm(year_range, ascii=True, desc="Year"):
+            self.logger.debug('Processing data for year {}'.format(year))
+
+            # Now iterating over lat and lon combinations
+            # Each year-lat-lon matrix generates a different file
+            for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+
+                for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
+
+                    for climate_variable in tqdm(climate_variables, ascii=True, desc="Climate Variable"):
+                        self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
+
+                        if lon in empty_lon_coordinates:
+                            continue
+
+                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, year))
+
+                        # here we are checking whether the get_values_from_cdf function
+                        # returns with a ValueError (meaning there were no values for
+                        # that particular lat & long combination). If it does return
+                        # with an error, we skip this loop and don't produce any output files
+
+                        try:
+                            var_year_lat_lon_df = silo.get_yearly_data(lat, lon, None, year, climate_variable)
+
+                        except ValueError:
+                            self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
+                            self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
+                            # Append empty lon value to list
+                            empty_lon_coordinates.append(lon)
+                            continue
+                        
+                        # delete the var_year_lat_lon_df back to zero.
+                        total_climate_df = total_climate_df.append(var_year_lat_lon_df)
+                        del var_year_lat_lon_df
+
+            # We reached the end of the year loop
+            # We must close the open handle to the s3fs file to free up resources
+            if self.input_path is None:
+                try:
+                    self.remote_file_obj.close()
+                    self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
+                except AttributeError:
+                    self.logger.debug("Closing handle to remote s3fs file not required. Using an API endpoint instead of a cloud NetCDF4 file")
+
+        # Remove any empty lon values from longitude array so as to avoid empty MET generation
+        empty_lon_array = np.array(empty_lon_coordinates)
+        final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
+
+        # Return results
+        return (total_climate_df, final_lon_range)
+
+    def generate_climate_dataframe_from_nasapower_cloud_api(self, year_range, climate_variables, lat_range, lon_range, input_dir):
+        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument. It will leverage NASAPOWER API to do it.
+
+        Args:
+            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data.
+            climate_variables (str): the climate variable short name as per SILO nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. Variable names are automatically translated from SILO to NASAPOWER codes.
+            lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
+            lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
+            input_dir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
+
+        Returns:
+            tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
+        """
+
+        # We will iterate through each "latitude" value and, 
+        # within this loop, we will iterate through all the different 
+        # "longitude" values for a given year. Results for each year
+        # are collected inside the "climate_df" with "climate_df.append"
+        # At the end, it will output a file with all the contents if
+        # "output_to_file=True" (by default it is "True")
+
+        self.logger.debug('Generating DataFrames')
+
+        # empty df to append all the climate_df to
+        total_climate_df = pd.DataFrame()
+
+        # create an empty list to keep track of lon coordinates
+        # where there are no values
+        empty_lon_coordinates = []
+
+        # Initialize BestiaPop required class instances
+        nasapower = nasapower_connector.NASAPowerClimateDataConnector(data_source=self.data_source, input_path=self.input_path, climate_variables=climate_variables)
+
+        # Now iterating over lat and lon combinations
+        # Each year-lat-lon matrix generates a different file
+        for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+
+            for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
+
+                if lon in empty_lon_coordinates:
+                    continue
+
+                for climate_variable in tqdm(climate_variables, ascii=True, desc="Climate Variable"):
+                    self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
+
+                    # Loading and/or Downloading the files
+                    for year in tqdm(year_range, ascii=True, desc="Year"):
+                        self.logger.debug('Processing data for year {}'.format(year))
+
+                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, year))
+
+                        # here we are checking whether the get_values_from_cdf function
+                        # returns with a ValueError (meaning there were no values for
+                        # that particular lat & long combination). If it does return
+                        # with an error, we skip this loop and don't produce any output files
+
+                        try:
+                            var_year_lat_lon_df = nasapower.get_yearly_data(lat, lon, None, year, year_range, climate_variable)                          
+
+                        except ValueError:
+                            self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
+                            self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
+                            # Append empty lon value to list
+                            empty_lon_coordinates.append(lon)
+                            continue
+                        
+                        # delete the var_year_lat_lon_df back to zero.
+                        total_climate_df = total_climate_df.append(var_year_lat_lon_df)
+                        del var_year_lat_lon_df
+
+        # Remove any empty lon values from longitude array so as to avoid empty MET generation
+        empty_lon_array = np.array(empty_lon_coordinates)
+        final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
+
+        # Return results
+        return (total_climate_df, final_lon_range)
+
+    def generate_climate_dataframe_from_disk(self, year_range, climate_variables, lat_range, lon_range, input_dir):
+        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument. The values will be sourced from Disk.
+        Args:
+            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data.
+            climate_variables (str): the climate variable short name as per SILO or NASAPOWER nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. For NASAPOWER check: XXXXX.
+            lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
+            lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
+            input_dir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
         Returns:
             tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
         """
@@ -784,22 +669,23 @@ class CLIMATEBEAST():
 
         self.logger.debug('Generating DataFrames')
 
-        # let's first create an empty df to store 
-        # all data for a given variable-year-lat-lon combination
-        met_df = pd.DataFrame()
-
         # empty df to append all the met_df to
-        total_met_df = pd.DataFrame()
+        total_climate_df = pd.DataFrame()
 
         # create an empty list to keep track of lon coordinates
         # where there are no values
         empty_lon_coordinates = []
 
+        # Initialize BestiaPop required class instances
+        silo = silo_connector.SILOClimateDataConnector(data_source=self.data_source, input_path=self.input_path, climate_variables=climate_variables)
+        nasapower = nasapower_connector.NASAPowerClimateDataConnector(data_source=self.data_source, input_path=self.input_path, climate_variables=climate_variables)
+        beastutils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
+
         # Loading and/or Downloading the files
         for year in tqdm(year_range, ascii=True, desc="Year"):
             self.logger.debug('Processing data for year {}'.format(year))
 
-            for climate_variable in tqdm(variable_short_name, ascii=True, desc="Climate Variable"):
+            for climate_variable in tqdm(climate_variables, ascii=True, desc="Climate Variable"):
                 self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
 
                 # Opening the target CDF database
@@ -809,27 +695,18 @@ class CLIMATEBEAST():
 
                 # if an input directory was provided
                 if self.input_path is not None:
-                    # Setting this variable to false to know how to react at the end of each year loop
-                    #load_from_s3 = False
 
-                    if inputdir.is_dir() == True:
+                    if input_dir.is_dir() == True:
                         sourcefile = str(year) + "." + climate_variable + ".nc"
-                        sourcepath = inputdir/sourcefile
-                    elif inputdir.is_file() == True:
-                        sourcepath = inputdir
+                        sourcepath = input_dir/sourcefile
+                    elif input_dir.is_file() == True:
+                        sourcepath = input_dir
 
                     if sourcepath.exists() == False:
                         self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
                         continue
                     
-                    data = self.load_cdf_file(sourcepath, climate_variable)
-
-                # if an input directory was not provided
-                # else:
-                    # TODO: improve this routine, BestiaPop should be able to load cloud files if the user wants to...
-                    #self.logger.info("Loading NetCDF4 Files from the Cloud is currently not implemented due to performance issues with data chunking")
-                    #data = self.load_cdf_file(None, climate_variable, year=year)
-                    #file_year = data['data_year']
+                    data = beastutils.load_cdf_file(sourcepath, climate_variable)
 
                 # Now iterating over lat and lon combinations
                 # Each year-lat-lon matrix generates a different file
@@ -840,7 +717,6 @@ class CLIMATEBEAST():
 
                         # Skipping any longitude points that have already been proven to not contain any data
                         # This adds a slight performance improvement too
-
                         if lon in empty_lon_coordinates:
                             continue
 
@@ -852,12 +728,12 @@ class CLIMATEBEAST():
                         # with an error, we skip this loop and don't produce any output files
                     
                         try:
-                            if self.input_path is None:
-                                if self.data_source == "silo" or self.data_source == "nasapower":
-                                    var_year_lat_lon_df = self.get_values_from_array(lat, lon, None, year, climate_variable)
-                            else:
-                                # Local file, read from input directory
-                                var_year_lat_lon_df = self.get_values_from_array(lat, lon, data['value_array'], year, climate_variable)
+                            # Local file, read from input directory
+                            if self.data_source == "silo":
+                                var_year_lat_lon_df = silo.get_yearly_data(lat, lon, data['value_array'], year, climate_variable)
+                            elif self.data_source == "nasapower":
+                                var_year_lat_lon_df = nasapower.get_yearly_data(lat, lon, data['value_array'], year, climate_variable)
+
                         except ValueError:
                             self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
                             self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
@@ -866,7 +742,7 @@ class CLIMATEBEAST():
                             continue
                         
                         # delete the var_year_lat_lon_df back to zero.
-                        total_met_df = total_met_df.append(var_year_lat_lon_df)
+                        total_climate_df = total_climate_df.append(var_year_lat_lon_df)
                         del var_year_lat_lon_df
 
                 # We reached the end of the year loop
@@ -878,311 +754,12 @@ class CLIMATEBEAST():
                     except AttributeError:
                         self.logger.debug("Closing handle to remote s3fs file not required. Using an API endpoint instead of a cloud NetCDF4 file")
 
-
         # Remove any empty lon values from longitude array so as to avoid empty MET generation
         empty_lon_array = np.array(empty_lon_coordinates)
         final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
 
         # Return results
-        return (total_met_df, final_lon_range)
-
-class DATAOUTPUT():
-    """This class will provide different methods for data output from climate dataframes
-
-        Args:
-            logger (str): A pointer to an initialized Argparse logger
-            data_source (str): The climate database where the values are being extracted from: SILO or NASAPOWER
-
-        Returns:
-            DATAOUTPUT: A class object with access to DATAOUTPUT methods
-    """
-
-    def __init__(self, logger, data_source):
-
-        # Setting up class variables
-        self.logger = logger
-        self.data_source = data_source
-        
-    def generate_output(self, final_daily_df, lat_range, lon_range, outputdir, output_type="met"):
-        """Generate required Output based on Output Type selected
-
-        Args:
-            final_daily_df (pandas.core.frame.DataFrame): the pandas daframe containing all the values that are going to be parsed into a specific output
-            lat_range (numpy.ndarray): an array of latitude values to select from the final_daily_df
-            lon_range (numpy.ndarray): an array of longitude values to select from the final_daily_df
-            outputdir (str): the folder that will be used to store the output files
-            output_type (str, optional): the output type: csv (not implemented yet), json(not implemented yet), met. Defaults to "met".
-
-        """
-
-        if output_type == "met":
-            # Rename variables
-            # Check if final df is empty, if so, then return and do not proceed with the rest of the file
-            if final_daily_df.empty == True:
-                self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
-                return
-
-            try:
-                # Rename df columns and sort them to match order expected by MET
-                final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
-                final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
-
-                self.logger.info("Proceeding to the generation of MET files")
-
-                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
-                    
-                    for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
-
-                        coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
-                        del coordinate_slice_df['lat']
-                        del coordinate_slice_df['lon']
-
-                        self.generate_met(outputdir, coordinate_slice_df, lat, lon)
-
-                        # Delete unused df
-                        del coordinate_slice_df
-
-            except KeyError as e:
-                self.logger.error("Could not find all required climate variables to generate MET: {}".format(str(e)))
-
-        if output_type == "dssat":
-            # Rename variables
-            # Check if final df is empty, if so, then return and do not proceed with the rest of the file
-            if final_daily_df.empty == True:
-                self.logger.error("No data in final dataframe. No file can be generated. Exiting...")
-                return
-
-            try:
-                # Rename df columns and sort them to match order expected by DSSAT
-                final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
-                final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
-
-                # Let's generate DSSAT Year+JulianDay time format
-                # Creating pandas series with last two digits of the year
-                dssat_year_series = final_daily_df.year.apply(lambda x: str(x)[2:])
-                # Creating pandas series with julian days with leading zeroes up to two spaces
-                dssat_julian_day_series = np.char.zfill(final_daily_df.day.apply(str).to_list(), 3)
-                # Add DSSAT julian day values as first column
-                final_daily_df.insert(0, 'dssatday', dssat_year_series + dssat_julian_day_series)
-                
-                self.logger.info("Proceeding to the generation of DSSAT files")
-
-                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
-                    
-                    for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
-
-                        coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
-                        del coordinate_slice_df['lat']
-                        del coordinate_slice_df['lon']
-
-                        self.generate_dssat(outputdir, coordinate_slice_df, lat, lon)
-
-                        # Delete unused df
-                        del coordinate_slice_df
-
-            except KeyError as e:
-                self.logger.error("Could not find all required climate variables to generate DSSAT: {}".format(str(e)))
-
-        if output_type == "csv":
-            # TODO: Clean this up...
-
-            # let's build the name of the file based on the value of the 
-            # first row for latitude, the first row for longitude and then 
-            # the year (obtained from the name of the file with file_year = int(sourcefile[:4]))
-            # Note: there is a better method for obtaining this by looking at the
-            # "time" variable, see here below:
-
-            if outputdir.is_dir() == True:
-                csv_file_name = '{}-{}.{}-{}.csv'.format(climate_variable, file_year, lat, lon)
-                self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-                full_output_path = outputdir/csv_file_name
-                var_year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.2f')
-
-                csv_file_name = 'mega_final_data_frame.csv'
-                self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-                full_output_path = outputdir/csv_file_name
-                final_daily_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
-
-    def generate_met(self, outputdir, met_dataframe, lat, lon):
-        """Generate APSIM MET File
-
-        Args:
-            outputdir (str): the folder where the generated MET files will be stored
-            met_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to MET file
-            lat (float): the latitude for which this MET file is being generated
-            lon (float): the longitude for which this MET file is being generated
-        """
-
-        # Creating final MET file
-
-        # Setting up Jinja2 Template for final MET file if required
-        # Text alignment looks weird here but it must be left this way for proper output
-        met_file_j2_template = '''[weather.met.weather]
-!station number={{ lat }}-{{ lon }}
-!This climate file is created by BestiaPop on {{ current_date }}
-!Source: {{ data_source }}
-!Date period from: {{ year_from }} to {{ year_to }}
-Latitude={{ lat }}
-Longitude={{ lon }}
-tav={{ tav }}
-amp={{ amp }}
-
-year day radn maxt mint rain
-() () (MJ^m2) (oC) (oC) (mm)
-{{ vardata }}
-        '''
-
-        j2_template = Template(met_file_j2_template)
-
-        # Initialize a string buffer to receive the output of df.to_csv in-memory
-        df_output_buffer = io.StringIO()
-
-        # Save data to a buffer (same as with a regular file but in-memory):
-        met_dataframe.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
-
-        # Get values from buffer
-        # Go back to position 0 to read from buffer
-        # Replace get rid of carriage return or it will add an extra new line between lines
-        df_output_buffer.seek(0)
-        met_df_text_output = df_output_buffer.getvalue()
-        met_df_text_output = met_df_text_output.replace("\r\n", "\n")
-        
-        # Calculate here the tav, amp values
-
-        # Calculate amp
-
-        # Get the months as a column
-        met_dataframe.loc[:, 'cte'] = 1997364
-        met_dataframe.loc[:, 'day2'] = met_dataframe['day'] + met_dataframe['cte']
-        met_dataframe.loc[:, 'date'] = (pd.to_datetime((met_dataframe.day2 // 1000)) + pd.to_timedelta(met_dataframe.day2 % 1000, unit='D'))
-        met_dataframe.loc[:, 'month'] = met_dataframe.date.dt.month
-        month=met_dataframe.loc[:, 'month']
-
-        met_dataframe.loc[:, 'tmean'] = met_dataframe[['maxt', 'mint']].mean(axis=1)
-        tmeanbymonth = met_dataframe.groupby(month)[["tmean"]].mean()
-        maxmaxtbymonth = tmeanbymonth['tmean'].max()
-        minmaxtbymonth = tmeanbymonth['tmean'].min()
-        amp = np.round((maxmaxtbymonth-minmaxtbymonth), decimals=5)
-
-        # Calculate tav
-        tav = tmeanbymonth.mean().tmean.round(decimals=5)
-        
-        # Configure some header variables
-        current_date = datetime.now().strftime("%d/%m/%Y")
-        data_source = "SILO"
-
-        # Delete df
-        del met_dataframe
-
-        in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=self.data_source.upper(), vardata=met_df_text_output)
-        df_output_buffer.close()
-
-        full_output_path = outputdir/'{}-{}.met'.format(lat, lon)
-        with open(full_output_path, 'w+') as f:
-            self.logger.info('Writting MET file {}'.format(full_output_path))
-            f.write(in_memory_met)
-
-    def generate_dssat(self, outputdir, dssat_dataframe, lat, lon):
-        """Generate DSSAT File
-
-        Args:
-            outputdir (str): the folder where the generated DSSAT files will be stored
-            dssat_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to DSSAT file
-            lat (float): the latitude for which this DSSAT file is being generated
-            lon (float): the longitude for which this DSSAT file is being generated
-        """
-
-        # Creating final DSSAT file
-
-        # Setting up Jinja2 Template for final DSSAT file if required
-        # Text alignment looks weird here but it must be left this way for proper output
-        dssat_file_j2_template = '''*WEATHER DATA : {{ lat }}-{{ lon }}
-
-{{ dssat_header }}
-{{ vardata }}
-        '''
-
-        j2_template = Template(dssat_file_j2_template)
-
-        # Initialize a string buffer to receive the output of df.to_csv in-memory
-        df_output_buffer = io.StringIO()
-
-        # Save data to a buffer (same as with a regular file but in-memory):
-        # Make a copy of the original dataframe so as to remove unnecessary values for the DSSAT file
-        # but to leave the values required to calculate TAV and AMP
-        dssat_df_2 = dssat_dataframe.copy()
-        # remove year
-        del dssat_df_2['year']
-        # remove day
-        del dssat_df_2['day']
-        # rename columns to match expected values in preparation for "tabulate" and right alignment
-        dssat_df_2 = dssat_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
-        dssat_var_data_ascii = tabulate(dssat_df_2.set_index('@DATE'), tablefmt='plain', numalign='right', stralign='right', headers=dssat_df_2.columns.values)
-        df_output_buffer.write(dssat_var_data_ascii)
-        #dssat_df_2.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
-        # delete df copy
-        del dssat_df_2
-
-        # Get values from buffer
-        # Go back to position 0 to read from buffer
-        # Replace get rid of carriage return or it will add an extra new line between lines
-        df_output_buffer.seek(0)
-        dssat_df_text_output = df_output_buffer.getvalue()
-        # Get rid of Tabulate's annoying double-space padding
-        dssat_df_text_output = re.sub("^\s\s", "", dssat_df_text_output)
-        dssat_df_text_output = re.sub("\n\s\s", "\n", dssat_df_text_output)        
-        
-        # Calculate here the tav, amp values
-
-        # Calculate amp
-        # Get the months as a column
-        dssat_dataframe.loc[:, 'cte'] = 1997364
-        dssat_dataframe.loc[:, 'day2'] = dssat_dataframe['day'] + dssat_dataframe['cte']
-        dssat_dataframe.loc[:, 'date'] = (pd.to_datetime((dssat_dataframe.day2 // 1000)) + pd.to_timedelta(dssat_dataframe.day2 % 1000, unit='D'))
-        dssat_dataframe.loc[:, 'month'] = dssat_dataframe.date.dt.month
-        month=dssat_dataframe.loc[:, 'month']
-
-        dssat_dataframe.loc[:, 'tmean'] = dssat_dataframe[['maxt', 'mint']].mean(axis=1)
-        tmeanbymonth = dssat_dataframe.groupby(month)[["tmean"]].mean()
-        maxmaxtbymonth = tmeanbymonth['tmean'].max()
-        minmaxtbymonth = tmeanbymonth['tmean'].min()
-        amp = np.round((maxmaxtbymonth-minmaxtbymonth), decimals=1)
-
-        # Calculate tav
-        tav = tmeanbymonth.mean().tmean.round(decimals=1)
-
-        # Create DSSAT Header values
-        # We don't have elevation?
-        elev = -99.0
-        dssat_header_dict = {
-            '@ INSI':  ["DIJY"],
-            'LAT':     [lat],
-            'LONG':     [lon],
-            'ELEV':     [elev],
-            'TAV':     [tav],
-            'AMP':     [amp],
-            'REFHT':     [-99.0],
-            'WNDHT':     [-99.0],
-        }
-        df_dssat_header = pd.DataFrame(dssat_header_dict)
-        dssat_header = tabulate(df_dssat_header.set_index('@ INSI'), tablefmt='plain', numalign='right', stralign='right', headers=df_dssat_header.columns.values, floatfmt=('', '.3f', '.3f', '.1f', '.1f', '.1f', '.1f', '.1f'))
-        # Get rid of Tabulate's annoying double-space padding
-        dssat_header = re.sub("^\s\s", "", dssat_header)
-        dssat_header = re.sub("\n\s\s", "\n", dssat_header) 
-
-        # Delete df
-        del dssat_dataframe
-        
-        # Configure some header variables
-        current_date = datetime.now().strftime("%d/%m/%Y")
-
-        in_memory_dssat = j2_template.render(lat=lat, lon=lon, dssat_header=dssat_header, vardata=dssat_df_text_output)
-        df_output_buffer.close()
-
-        full_output_path = outputdir/'{}-{}.WHT'.format(lat, lon)
-        with open(full_output_path, 'w+') as f:
-            self.logger.info('Writting DSSAT file {}'.format(full_output_path))
-            f.write(in_memory_dssat)
+        return (total_climate_df, final_lon_range)
 
 def main():
   # Setup logging
