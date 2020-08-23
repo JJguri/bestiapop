@@ -244,7 +244,7 @@ class MyUtilityBeast():
                     # Check the number spread
                     if int(lon_value_count+1) != len(lon_range):
                         lon_range = np.arange(first_lon,np.round((last_lon+float_step), decimals=2),float_step).round(decimals=2).tolist()
-                        if int(lat_value_count+1) != len(lat_range):
+                        if int(lon_value_count+1) != len(lon_range):
                             # Must get rid of last float
                             lon_range = np.delete(lon_range,(len(lon_range)-1),0)
 

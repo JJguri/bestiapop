@@ -60,6 +60,45 @@ class DATAOUTPUT():
 
         """
 
+        # Determine the variable that has the highest range so we can 
+        # benefit from parallel processing when active, based on the
+        # variable that can be allocated the highest ammount of cores
+        if len(lat_range) > len(lon_range):
+            primary_var_desc = "lat"
+            secondary_var_desc = "lon"
+            primary_var = lat_range
+            secondary_var = lon_range
+        elif len(lat_range) < len(lon_range):
+            primary_var_desc = "lon"
+            secondary_var_desc = "lat"
+            primary_var = lon_range
+            secondary_var = lat_range
+
+        if output_type == "stdout":
+
+            # Rename df columns and sort them
+            final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+
+            final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
+
+            for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
+                
+                for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+
+                    if primary_var_desc == "lat":
+                        lat = primary_data_point
+                        lon = secondary_data_point
+                    elif primary_var_desc == "lon":
+                        lon = primary_data_point
+                        lat = secondary_data_point
+
+                    coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
+
+                    # We shall output the plain final DataFrame to stdout using tabulate
+                    print("\n")
+                    print(tabulate(coordinate_slice_df, headers=coordinate_slice_df.keys(), tablefmt='psql', showindex=False))
+                    print("\n")
+
         if output_type == "met":
             # Rename variables
             # Check if final df is empty, if so, then return and do not proceed with the rest of the file
@@ -74,9 +113,16 @@ class DATAOUTPUT():
 
                 self.logger.info("Proceeding to the generation of MET files")
 
-                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+                for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
                     
-                    for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
+                    for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+
+                        if primary_var_desc == "lat":
+                            lat = primary_data_point
+                            lon = secondary_data_point
+                        elif primary_var_desc == "lon":
+                            lon = primary_data_point
+                            lat = secondary_data_point
 
                         coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
                         del coordinate_slice_df['lat']
@@ -90,7 +136,7 @@ class DATAOUTPUT():
             except KeyError as e:
                 self.logger.error("Could not find all required climate variables to generate MET: {}".format(str(e)))
 
-        if output_type == "dssat":
+        if output_type == "wht":
             # Rename variables
             # Check if final df is empty, if so, then return and do not proceed with the rest of the file
             if final_daily_df.empty == True:
@@ -110,43 +156,73 @@ class DATAOUTPUT():
                 # Add DSSAT julian day values as first column
                 final_daily_df.insert(0, 'dssatday', dssat_year_series + dssat_julian_day_series)
                 
-                self.logger.info("Proceeding to the generation of DSSAT files")
+                self.logger.info("Proceeding to the generation of WHT files")
 
-                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+                for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
                     
-                    for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
+                    for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+
+                        if primary_var_desc == "lat":
+                            lat = primary_data_point
+                            lon = secondary_data_point
+                        elif primary_var_desc == "lon":
+                            lon = primary_data_point
+                            lat = secondary_data_point
 
                         coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
                         del coordinate_slice_df['lat']
                         del coordinate_slice_df['lon']
 
-                        self.generate_dssat(outputdir, coordinate_slice_df, lat, lon)
+                        self.generate_wht(outputdir, coordinate_slice_df, lat, lon)
 
                         # Delete unused df
                         del coordinate_slice_df
 
             except KeyError as e:
-                self.logger.error("Could not find all required climate variables to generate DSSAT: {}".format(str(e)))
+                self.logger.error("Could not find all required climate variables to generate WHT file: {}".format(str(e)))
 
         if output_type == "csv":
             # TODO: Clean this up...
 
-            # let's build the name of the file based on the value of the 
-            # first row for latitude, the first row for longitude and then 
-            # the year (obtained from the name of the file with file_year = int(sourcefile[:4]))
-            # Note: there is a better method for obtaining this by looking at the
-            # "time" variable, see here below:
+            # let's build the name of the file based on the value of lat/lon combinations
+            # followed by the climate data source used (SILO or NASA POWER)
 
             if outputdir.is_dir() == True:
-                csv_file_name = '{}-{}.{}-{}.csv'.format(climate_variable, file_year, lat, lon)
-                self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-                full_output_path = outputdir/csv_file_name
-                var_year_lat_lon_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.2f')
 
-                csv_file_name = 'mega_final_data_frame.csv'
-                self.logger.info('Writting CSV file {} to {}'.format(csv_file_name, outputdir))
-                full_output_path = outputdir/csv_file_name
-                final_daily_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
+                try:
+
+                    # Rename df columns and sort them
+                    final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+
+                    final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
+
+                    for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
+                        
+                        for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+
+                            if primary_var_desc == "lat":
+                                lat = primary_data_point
+                                lon = secondary_data_point
+                            elif primary_var_desc == "lon":
+                                lon = primary_data_point
+                                lat = secondary_data_point
+
+                            coordinate_slice_df = final_daily_df[(final_daily_df.lon == lon) & (final_daily_df.lat == lat)]
+
+                            # Let's create a CSV for each lat/lon combination
+                            csv_file_name = '{}-{}.{}.csv'.format(lat, lon, self.data_source)
+                            full_output_path = outputdir/csv_file_name
+                            self.logger.debug('Writting CSV file {} to {}'.format(csv_file_name, full_output_path))
+                            coordinate_slice_df.to_csv(full_output_path, sep=',', index=False, mode='a', float_format='%.2f')
+
+                    # Let's also create a CSV containing all the datapoints
+                    csv_file_name = 'bestiapop-beastly-dataframe.csv'
+                    full_output_path = outputdir/csv_file_name
+                    self.logger.debug('Writting BEAST DATAFRAME :) CSV file {} to {}'.format(csv_file_name, full_output_path))
+                    final_daily_df.to_csv(full_output_path, sep=',', na_rep=np.nan, index=False, mode='w', float_format='%.2f')
+
+                except Exception as e:
+                    self.logger.error(e)
 
     def generate_met(self, outputdir, met_dataframe, lat, lon):
         """Generate APSIM MET File
@@ -227,68 +303,68 @@ year day radn maxt mint rain
             self.logger.info('Writting MET file {}'.format(full_output_path))
             f.write(in_memory_met)
 
-    def generate_dssat(self, outputdir, dssat_dataframe, lat, lon):
-        """Generate DSSAT File
+    def generate_wht(self, outputdir, wht_dataframe, lat, lon):
+        """Generate WHT File
 
         Args:
-            outputdir (str): the folder where the generated DSSAT files will be stored
-            dssat_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to DSSAT file
-            lat (float): the latitude for which this DSSAT file is being generated
-            lon (float): the longitude for which this DSSAT file is being generated
+            outputdir (str): the folder where the generated WHT files will be stored
+            wht_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to WHT file
+            lat (float): the latitude for which this WHT file is being generated
+            lon (float): the longitude for which this WHT file is being generated
         """
 
-        # Creating final DSSAT file
+        # Creating final WHT file
 
-        # Setting up Jinja2 Template for final DSSAT file if required
+        # Setting up Jinja2 Template for final WHT file if required
         # Text alignment looks weird here but it must be left this way for proper output
-        dssat_file_j2_template = '''*WEATHER DATA : {{ lat }}-{{ lon }}
+        wht_file_j2_template = '''*WEATHER DATA : {{ lat }}-{{ lon }}
 
-{{ dssat_header }}
+{{ wht_header }}
 {{ vardata }}
         '''
 
-        j2_template = Template(dssat_file_j2_template)
+        j2_template = Template(wht_file_j2_template)
 
         # Initialize a string buffer to receive the output of df.to_csv in-memory
         df_output_buffer = io.StringIO()
 
         # Save data to a buffer (same as with a regular file but in-memory):
-        # Make a copy of the original dataframe so as to remove unnecessary values for the DSSAT file
+        # Make a copy of the original dataframe so as to remove unnecessary values for the WHT file
         # but to leave the values required to calculate TAV and AMP
-        dssat_df_2 = dssat_dataframe.copy()
+        wht_df_2 = wht_dataframe.copy()
         # remove year
-        del dssat_df_2['year']
+        del wht_df_2['year']
         # remove day
-        del dssat_df_2['day']
+        del wht_df_2['day']
         # rename columns to match expected values in preparation for "tabulate" and right alignment
-        dssat_df_2 = dssat_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
-        dssat_var_data_ascii = tabulate(dssat_df_2.set_index('@DATE'), tablefmt='plain', numalign='right', stralign='right', headers=dssat_df_2.columns.values)
-        df_output_buffer.write(dssat_var_data_ascii)
-        #dssat_df_2.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
+        wht_df_2 = wht_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
+        wht_var_data_ascii = tabulate(wht_df_2.set_index('@DATE'), tablefmt='plain', numalign='right', stralign='right', headers=wht_df_2.columns.values)
+        df_output_buffer.write(wht_var_data_ascii)
+        #wht_df_2.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
         # delete df copy
-        del dssat_df_2
+        del wht_df_2
 
         # Get values from buffer
         # Go back to position 0 to read from buffer
         # Replace get rid of carriage return or it will add an extra new line between lines
         df_output_buffer.seek(0)
-        dssat_df_text_output = df_output_buffer.getvalue()
+        wht_df_text_output = df_output_buffer.getvalue()
         # Get rid of Tabulate's annoying double-space padding
-        dssat_df_text_output = re.sub("^\s\s", "", dssat_df_text_output)
-        dssat_df_text_output = re.sub("\n\s\s", "\n", dssat_df_text_output)        
+        wht_df_text_output = re.sub(r'^\s\s', '', wht_df_text_output)
+        wht_df_text_output = re.sub(r'\n\s\s', '\n', wht_df_text_output)        
         
         # Calculate here the tav, amp values
 
         # Calculate amp
         # Get the months as a column
-        dssat_dataframe.loc[:, 'cte'] = 1997364
-        dssat_dataframe.loc[:, 'day2'] = dssat_dataframe['day'] + dssat_dataframe['cte']
-        dssat_dataframe.loc[:, 'date'] = (pd.to_datetime((dssat_dataframe.day2 // 1000)) + pd.to_timedelta(dssat_dataframe.day2 % 1000, unit='D'))
-        dssat_dataframe.loc[:, 'month'] = dssat_dataframe.date.dt.month
-        month=dssat_dataframe.loc[:, 'month']
+        wht_dataframe.loc[:, 'cte'] = 1997364
+        wht_dataframe.loc[:, 'day2'] = wht_dataframe['day'] + wht_dataframe['cte']
+        wht_dataframe.loc[:, 'date'] = (pd.to_datetime((wht_dataframe.day2 // 1000)) + pd.to_timedelta(wht_dataframe.day2 % 1000, unit='D'))
+        wht_dataframe.loc[:, 'month'] = wht_dataframe.date.dt.month
+        month=wht_dataframe.loc[:, 'month']
 
-        dssat_dataframe.loc[:, 'tmean'] = dssat_dataframe[['maxt', 'mint']].mean(axis=1)
-        tmeanbymonth = dssat_dataframe.groupby(month)[["tmean"]].mean()
+        wht_dataframe.loc[:, 'tmean'] = wht_dataframe[['maxt', 'mint']].mean(axis=1)
+        tmeanbymonth = wht_dataframe.groupby(month)[["tmean"]].mean()
         maxmaxtbymonth = tmeanbymonth['tmean'].max()
         minmaxtbymonth = tmeanbymonth['tmean'].min()
         amp = np.round((maxmaxtbymonth-minmaxtbymonth), decimals=1)
@@ -296,10 +372,10 @@ year day radn maxt mint rain
         # Calculate tav
         tav = tmeanbymonth.mean().tmean.round(decimals=1)
 
-        # Create DSSAT Header values
+        # Create WHT Header values
         # We don't have elevation?
         elev = -99.0
-        dssat_header_dict = {
+        wht_header_dict = {
             '@ INSI':  ["DIJY"],
             'LAT':     [lat],
             'LONG':     [lon],
@@ -309,22 +385,19 @@ year day radn maxt mint rain
             'REFHT':     [-99.0],
             'WNDHT':     [-99.0],
         }
-        df_dssat_header = pd.DataFrame(dssat_header_dict)
-        dssat_header = tabulate(df_dssat_header.set_index('@ INSI'), tablefmt='plain', numalign='right', stralign='right', headers=df_dssat_header.columns.values, floatfmt=('', '.3f', '.3f', '.1f', '.1f', '.1f', '.1f', '.1f'))
+        wht_dssat_header = pd.DataFrame(wht_header_dict)
+        wht_header = tabulate(wht_dssat_header.set_index('@ INSI'), tablefmt='plain', numalign='right', stralign='right', headers=wht_dssat_header.columns.values, floatfmt=('', '.3f', '.3f', '.1f', '.1f', '.1f', '.1f', '.1f'))
         # Get rid of Tabulate's annoying double-space padding
-        dssat_header = re.sub(r"^\s\s", "", dssat_header)
-        dssat_header = re.sub(r"\n\s\s", "\n", dssat_header) 
+        wht_header = re.sub(r"^\s\s", "", wht_header)
+        wht_header = re.sub(r"\n\s\s", "\n", wht_header) 
 
         # Delete df
-        del dssat_dataframe
-        
-        # Configure some header variables
-        current_date = datetime.now().strftime("%d/%m/%Y")
+        del wht_dataframe
 
-        in_memory_dssat = j2_template.render(lat=lat, lon=lon, dssat_header=dssat_header, vardata=dssat_df_text_output)
+        in_memory_dssat = j2_template.render(lat=lat, lon=lon, wht_header=wht_header, vardata=wht_df_text_output)
         df_output_buffer.close()
 
         full_output_path = outputdir/'{}-{}.WHT'.format(lat, lon)
         with open(full_output_path, 'w+') as f:
-            self.logger.info('Writting DSSAT file {}'.format(full_output_path))
+            self.logger.info('Writting WHT file {}'.format(full_output_path))
             f.write(in_memory_dssat)

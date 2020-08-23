@@ -12,6 +12,8 @@ import s3fs
 import sys
 import xarray as xr
 
+from tqdm import tqdm
+
 class NASAPowerClimateDataConnector():
     """This class will provide methods that query and parse data from NASA POWER climate database
 
@@ -22,7 +24,7 @@ class NASAPowerClimateDataConnector():
     """
 
 
-    def __init__(self, data_source, input_path, climate_variables):
+    def __init__(self, climate_variables, data_source="silo", input_path=None):
 
         # Setup logging
         # We need to pass the "logger" to any Classes or Modules that may use it 
@@ -117,8 +119,8 @@ class NASAPowerClimateDataConnector():
                 # Attempt to fetch the information from currently available data from a previous API call
                 # Check if the coordinates in the available data are different than those being requested
                 current_lon, current_lat, current_elev = self.climate_metadata_coordinates
-                current_lat = np.round(current_lat, decimals=2)
-                current_lon = np.round(current_lon, decimals=2)
+                current_lat = np.round(current_lat, decimals=2) # Need to round values since NASA POWER API returns approximative numbers with 5 decimals
+                current_lon = np.round(current_lon, decimals=2) # Need to round values since NASA POWER API returns approximative numbers with 5 decimals
                 current_elev = np.round(current_elev, decimals=2)
 
                 if (current_lat != lat) or (current_lon != lon):
@@ -247,3 +249,77 @@ class NASAPowerClimateDataConnector():
         df.insert(0, 'lon', lon)
 
         return df
+
+    def generate_climate_dataframe_from_nasapower_cloud_api(self, year_range, climate_variables, lat_range, lon_range, input_dir):
+        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument. It will leverage NASAPOWER API to do it.
+
+        Args:
+            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data.
+            climate_variables (str): the climate variable short name as per SILO nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. Variable names are automatically translated from SILO to NASAPOWER codes.
+            lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
+            lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
+            input_dir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
+
+        Returns:
+            tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
+        """
+
+        # We will iterate through each "latitude" value and, 
+        # within this loop, we will iterate through all the different 
+        # "longitude" values for a given year. Results for each year
+        # are collected inside the "climate_df" with "climate_df.append"
+        # At the end, it will output a file with all the contents if
+        # "output_to_file=True" (by default it is "True")
+
+        self.logger.debug('Generating DataFrames')
+
+        # empty df to append all the climate_df to
+        total_climate_df = pd.DataFrame()
+
+        # create an empty list to keep track of lon coordinates
+        # where there are no values
+        empty_lon_coordinates = []
+
+        # Now iterating over lat and lon combinations
+        # Each year-lat-lon matrix generates a different file
+        for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+
+            for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
+
+                if lon in empty_lon_coordinates:
+                    continue
+
+                for climate_variable in tqdm(climate_variables, ascii=True, desc="Climate Variable"):
+                    self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
+
+                    # Loading and/or Downloading the files
+                    for year in tqdm(year_range, ascii=True, desc="Year"):
+                        self.logger.debug('Processing data for year {}'.format(year))
+
+                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, year))
+
+                        # here we are checking whether the get_values_from_cdf function
+                        # returns with a ValueError (meaning there were no values for
+                        # that particular lat & long combination). If it does return
+                        # with an error, we skip this loop and don't produce any output files
+
+                        try:
+                            var_year_lat_lon_df = self.get_yearly_data(lat, lon, None, year, year_range, climate_variable)                          
+
+                        except ValueError:
+                            self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
+                            self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
+                            # Append empty lon value to list
+                            empty_lon_coordinates.append(lon)
+                            continue
+                        
+                        # delete the var_year_lat_lon_df back to zero.
+                        total_climate_df = total_climate_df.append(var_year_lat_lon_df)
+                        del var_year_lat_lon_df
+
+        # Remove any empty lon values from longitude array so as to avoid empty MET generation
+        empty_lon_array = np.array(empty_lon_coordinates)
+        final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
+
+        # Return results in a touple
+        return (total_climate_df, final_lon_range)
