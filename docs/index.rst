@@ -33,9 +33,16 @@ Although the code downloads data from the `SILO`_ database, it could be applied 
 Authors
 ~~~~~~~
 
-**Data Analytics Specialist & Code Developer**: Diego Perez (@darkquassar / `https://linkedin.com/in/diegope`_)
+* **Data Analytics Specialist & Code Developer**: Diego Perez (@darkquassar / `https://linkedin.com/in/diegope`_)
 
-**Data Scientist & Agricultural Systems Modeller**: Jonathan Ojeda (@JJguri / `https://www.jojeda.com/`_)
+* **Data Scientist & Agricultural Systems Modeller**: Jonathan Ojeda (@JJguri / `https://www.jojeda.com/`_)
+
+Acknowledgements
+~~~~~~~~~~~~~~~~
+
+* Aasdf
+* fasdf
+* fdfsdfsd
 
 
 Description
@@ -85,6 +92,34 @@ includes example data sets for all crop models. The STICS (**Simulateur
 mulTIdisciplinaire pour les Cultures Standard**, or *multidisciplinary
 simulator for standard crops*) model is a dynamic, generic and robust
 model aiming to simulate the soil-crop-atmosphere system.
+
+About SILO
+==========
+
+SILO is a database of Australian climate data from 1889 to the present. It provides daily meteorological datasets for a range of climate variables in ready-to-use formats suitable for biophysical modelling, research and climate applications.
+
+NetCDF and API data variations from SILO
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are particular years where some data may be different when you read the data from a `NetCDF SILO file`, as opposed to reading the same data from the `SILO API`. Below is a detailed description of the SILO team as to why this might happen.
+
+When you request point data at grid cell locations, the data is extracted from the relevant grid cell in the NetCDF files. This data is then passed through a simple filter that checks if each datum is within an acceptable range:
+
+  • daily rainfall: 0 – 1300 mm
+  • maximum temperature: -9 - 54 ᵒC
+  • minimum temperature: -20 - 40 ᵒC
+  • class A pan evaporation: 0 - 35 mm
+  • solar radiation: 0 - 35 MJ/m2
+  • vapour pressure: 0 - 43.2 hPa
+  • maximum temperature > minimum temperature
+
+If a given datum (or pair of data values for the Tmax > Tmin check) fails the check, it/they may be erroneous so SILO provides the long term daily mean(s) instead. This is represented by a number *75* in the value for a particular datum.
+
+If you request data at station locations the same checks are done; the main difference is observed data are provided where possible, and gridded data are provided if observed data are not available on a given day(s).
+
+> Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in our 2001 paper (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
+
+As noted above, when errors are detected the suspect data are replaced by the long term daily mean. You can easily identify the replacements by the source code which is provided in many of our data formats. For example, if you use the API to request data in “standard” format for location 41.15 ᵒS, 145.50ᵒE you will obtain:
 
 More information
 ~~~~~~~~~~~~~~~~
