@@ -1,31 +1,41 @@
 #!/usr/bin/env python3
 
 '''
- NAME: BESTIAPOP (POPBEAST)
- VERSION: 3.0
- DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
- DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
- DESCRIPTION: A python package to automatically generate gridded climate data for APSIM (to be extended for any crop models)
- PAPERS OR PROJECTS USING THIS CODE: 
-    1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2019) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
-    2. Ojeda JJ, Perez D, Eyshi Rezaei E (2020) The BestiaPop - A Python package to automatically generate gridded climate data for crop models. APSIM Symposium, Brisbane, Australia.
+    NAME: BESTIAPOP (POPBEAST) ("My heroe es, la gran bestia pop!", thanks Redonditos de Ricota)
+    DESCRIPTION: A python package to automate the extraction and processing of climate data from SILO and NASAPOWER.
+    VERSION: 3.0
 
- HISTORY: 
-    v0.1 - Created python file
-    v0.2 - Added numpy series extraction
-    v0.3 - Using pathlib for cross-platform path compatibility
-    v1.0 - Added progress bar to download routine
-    v1.5 - Discarded netCDF4 python package in favor of h5netcdf and xarray for faster slice reads
-    v1.6 - Implemented data read directly from the Cloud (AWS S3) for faster data loads, improved speed x15
-    v2.0 - Collection of all variable combinations in final dataframe. Obtaining pseudo-MET df from final df.
-    v2.1 - Generating final MET file
-    v2.2 - Adding commandline parameter to allow for the selection of output type: either MET or CSV
-    v2.5 - Implemented MultiProcessing for MET file generation, fixed Pandas warnings, decoupled output generation from data carving, added "days" counter for proper output when tasks run longer than 24hs.
-    v3.0 - Major version jump due to complete restructuring of BestiaPop. Broke down the single script into multiple ones according to functionalities to make it more extensible and prepare for future enhancements. New features: ****
-    
- TODO:
-    1. Implement a new functionality in APSIM that automatically executes this code by only providing lat and lon values (and generating a MET)
-    2. Use AutoComplete package to help in commandline params: https://github.com/kislyuk/argcomplete.
+    DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
+    DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
+ 
+    ACKNOWLEDGEMENTS:
+        * This work was supported by the JM Roberts Seed Funding for Sustainable Agriculture 2020 and the Tasmanian Institute of Agriculture, University of Tasmania.
+        * SILO (Scientific Information for Land Owners), see: https://www.longpaddock.qld.gov.au/silo/about/
+        * NASAPOWER, see: https://power.larc.nasa.gov/
+
+    LICENSE:
+        * Please refer to the LICENSE file at the root of the repository for a modified BSD clause that includes the acknowledgements required by the open source climate data providers that BestiaPop utilizes (SILO and NASAPOWER).
+
+    PAPERS OR PROJECTS USING THIS CODE: 
+        1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2019) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
+        2. Ojeda JJ, Perez D, Eyshi Rezaei E (2020) The BestiaPop - A Python package to automatically generate gridded climate data for crop models. APSIM Symposium, Brisbane, Australia.
+
+    HISTORY: 
+        v0.1 - Created python file
+        v0.2 - Added numpy series extraction
+        v0.3 - Using pathlib for cross-platform path compatibility
+        v1.0 - Added progress bar to download routine
+        v1.5 - Discarded netCDF4 python package in favor of h5netcdf and xarray for faster slice reads
+        v1.6 - Implemented data read directly from the Cloud (AWS S3) for faster data loads, improved speed x15
+        v2.0 - Collection of all variable combinations in final dataframe. Obtaining pseudo-MET df from final df.
+        v2.1 - Generating final MET file
+        v2.2 - Adding commandline parameter to allow for the selection of output type: either MET or CSV
+        v2.5 - Implemented MultiProcessing for MET file generation, fixed Pandas warnings, decoupled output generation from data carving, added "days" counter for proper output when tasks run longer than 24hs.
+        v3.0 - Major version jump due to complete restructuring of BestiaPop. Broke down the single script into multiple ones according to functionalities to make it more extensible and prepare for future enhancements. New features: ****
+        
+    TODO:
+        1. Implement a new functionality in APSIM that automatically executes this code by only providing lat and lon values (and generating a MET)
+        2. Use AutoComplete package to help in commandline params: https://github.com/kislyuk/argcomplete.
 
 '''
 
