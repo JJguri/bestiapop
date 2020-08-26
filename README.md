@@ -247,7 +247,7 @@ Complete MET file [here](/sample_data/products/-41.0-145.0.met)
 ### WHT file example (DSSAT)
 
 ![image](/sample_data/products/wht.jpg)
-Complete WHT file [here](/sample_data/products/-4101450161.wht) 
+Complete WHT file [here](/sample_data/products/-4101450161.WHT) 
 
 # Main References (The following papers implemented this code and can be used as references)
 
