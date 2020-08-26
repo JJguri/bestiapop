@@ -1,9 +1,9 @@
 :Authors:
   * Diego Perez (@darkquassar)
-  * Jonathan Ojeda
+  * Jonathan Jesus Ojeda (@JJguri)
 
 **********
-BestiaPop 
+BestiaPop
 **********
 
 **Date**: |today| **Version**: |version|
@@ -109,7 +109,14 @@ DSSAT: ???
 About SILO
 ==========
 
-SILO is a database of Australian climate data from 1889 to the present. It provides daily meteorological datasets for a range of climate variables in ready-to-use formats suitable for biophysical modelling, research and climate applications.
+SILO (Scientific Information for Land Owners) is a database of Australian climate data from 1889 to the present. It provides daily meteorological datasets for a range of climate variables in ready-to-use formats suitable for biophysical crop modelling, research and climate applications.
+
+SILO is an enabling technology which allows users to focus on their research, without the burden of data preparation. SILO products support research through providing:
+
+- national coverage, with infilled values for missing data, and
+- datasets being model ready, in a variety of formats.
+
+SILO is hosted by the Queensland Department of Environment and Science (DES). The data system began in 1996 as a collaborative project between the Queensland Government and the Australian Bureau of Meteorology (BoM) sponsored by the Land and Water Resources Research and Development Corporation. The datasets are constructed from observational data obtained from BoM.
 
 NetCDF and API data variations from SILO
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -130,7 +137,7 @@ If a given datum (or pair of data values for the Tmax > Tmin check) fails the ch
 
 If you request data at station locations the same checks are done; the main difference is observed data are provided where possible, and gridded data are provided if observed data are not available on a given day(s).
 
-  Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in our 2001 paper (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
+Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in Jeffrey et al. 2001] (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
 
 More information
 ~~~~~~~~~~~~~~~~
