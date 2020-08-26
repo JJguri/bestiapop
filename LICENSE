@@ -1,12 +1,13 @@
-bestiapop is available for use under the following license, commonly known
-as the 3-clause (or "modified") BSD license:
+BestiaPop is available for use and distribution under the following license:
 
 ==============================
+
 Copyright (c) 2020 Jonathan Ojeda <jonathanjesusojeda@gmail.com> and Diego Perez <darkquasar7@gmail.com>
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
+
 1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 2. Redistributions in binary form must reproduce the above copyright
@@ -14,6 +15,14 @@ are met:
    documentation and/or other materials provided with the distribution.
 3. The name of the author may not be used to endorse or promote products
    derived from this software without specific prior written permission.
+4. Acknowledgements are made to the source data providers (SILO or NASAPOWER),
+   if data obtained from their databases is utilized in either technical
+   or non-technical documents as per SILO and NASAPOWER requirements. The
+   requirements can be referenced in the ACKNOWLEDGEMENTS section below.
+
+
+DISCLAIMER
+++++++++++
 
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -25,4 +34,23 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ACKNOWLEDGEMENTS
+++++++++++++++++
+
+SILO
+
+Under the CC Attribution licence, users are required to acknowledge SILO as a data provider,
+under the following terms:
+   * Cite the Jeffrey et al. 2001 paper in technical documents
+   * Acknowledge SILO as the data source in non-technical documents, for example: "These data were
+     obtained from the Queensland Government’s SILO climate database and were licensed under CC BY 4.0."
+
+NASAPOWER
+
+When POWER data products are used in a publication, we request the following acknowledgment be included:
+
+“These data were obtained from the NASA Langley Research Center POWER Project funded through the NASA
+Earth Science Directorate Applied Science Program.”
+
 ==============================
