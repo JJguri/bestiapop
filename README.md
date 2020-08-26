@@ -102,31 +102,31 @@ BestiaPop has three primary commands that you can pass in with the `-a` option:
 
 ### Generate Climate File
 
-#### Generate MET output files using SILO cloud API, for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+#### Generate MET output files (for APSIM) using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
 > **Note**:
     * the resulting MET files will be placed in the output directory specified by "-o"
-    * add *-ou csv* at the end of the script if a csv is required as output file. The code generates MET files by default.
+    * add *-ot csv* at the end of the script if a csv is required as output file. The code generates MET files by default.
 
 ```powershell
 python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
 ```
 
-#### Generate WHT (for DSSAT) output files using SILO cloud API, for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+#### Generate WHT output files (for DSSAT) output files using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
 ```powershell
 python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot wht
 ```
 
-#### Generate MET output files using NASAPOWER cloud API, for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2003 to 2016
+#### Generate MET output files (for APSIM) using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2003 to 2016
 
 ```powershell
 python bestiapop.py -a generate-climate-file -s nasapower -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
 ```
 
-#### Generate MET output files from Local Disk for Radiation, Min Temperature, Max Temperature and Daily Rain for years 1990 to 2010
+#### Generate MET output files (for APSIM) from local disk for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 1990 to 2010
 
-> **Note**: all the required NetCDF files should be placed in a single directory which is then referenced with the *--input* parameter. The directory should have the following structure:
+> **Note**: all the required NetCDF files should be placed in a single directory which is then referenced with the *-i* parameter. The directory should have the following structure:
 
 ```c
 C:\input\folder:
@@ -149,9 +149,9 @@ C:\input\folder:
 python bestiapop.py -a generate-climate-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -o C:\some\output\folder\ -ot met
 ```
 
-### Download NetCDF4 File
+### Download NetCDF4 Files
 
-#### Download SILO climate files for years 2010 to 2018 and the variables daily_rain and max_temp
+#### Download SILO climate files for years 2010 to 2018 for and maximum air temperature
 
 This command will **only** download the file from the cloud, it won't perform any further processing.
 
@@ -161,7 +161,7 @@ This command will **only** download the file from the cloud, it won't perform an
 python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 ```
 
-## PARALLEL COMPUTING 
+## PARALLEL COMPUTING
 
 **BestiaPop** as of version 2.5 comes with parallel processing for multicore systems by leveraging python's multiprocessing library. Not all actions have implemented this functionality yet but they will be added progressively. To enable multiprocessing just pass in the `-m` flag to the `bestiapop.py` command. By default it will leverage **all your cores** (whether physical or logical).
 
@@ -170,7 +170,7 @@ Parallelization is done based on the coordinate variable (whether *latitude* or 
 
 > **NOTE**: When generating *MET* files *from locally available NetCDF4 files* based on SILO data, you might experience mixed results since SILO provides NetCDF4 files split into `year-variable` and *MET* files require multiple *years* in the same MET file. As of Jun 2020, SILO has refactored all its NetCDF4 files to perform better when extracting spatial data points rather than time-based data points. This effectively means that it is slower to extract data **for all days of the year** from NetCDF4 files, for a single combination of lat/lon, than it is to extract data for all combinations of lat/lon **for a single day**. Since SILO NetCDF4 files are split into `year-variable` units you will always have to extract data from different files when using multiple years. 
 
-### EXAMPLE: Generate MET output files from SILO Cloud API for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+### EXAMPLE: Generate MET output files (for APSIM) from SILO Cloud API global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
 ```powershell
 python bestiapop.py -a generate-climate-file -s silo -y "2008-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -m
