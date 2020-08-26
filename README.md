@@ -33,13 +33,13 @@ Curently, the code downloads data from two different climate databases:
 
 * https://www.jojeda.com/project/project-6/
 
-## Process-based (mechanistic) crop models
+# Process-based (mechanistic) crop models
 
 Process-based crop models are increasingly used in agricultural decision making. In the last two decades, they have intensively contributed to crop management, environmental impact studies, climate risk assessment and climate change adaptation analysis. The number of crop models and model users is increasing and several studies have been intensively focused on model development, i.e. building or improving the science behind the model and multi-model ensembles. [APSIM](https://www.apsim.info/) (Agricultural Production Systems Simulator) and [DSSAT](https://dssat.net/) (Decision Support System for Agrotechnology Transfer) are the two major crop models used by the scientific community worldwide.
 
-### APSIM
+## APSIM
 
-#### What is APSIM?
+### What is APSIM?
 
 The Agricultural Production Systems Simulator (APSIM) is internationally recognised as a highly advanced platform for modelling and simulation of agricultural systems. It contains a suite of modules that enable the simulation of systems for a diverse range of crop, animal, soil, climate and management interactions. APSIM is undergoing continual development, with new capability added to regular releases of official versions. Its development and maintenance is underpinned by rigorous science and software engineering standards. The [APSIM Initiative](https://www.apsim.info/about-us/) has been established to promote the development and use of the science modules and infrastructure software of APSIM.
 
@@ -59,7 +59,7 @@ In addition to the science and infrastructure elements of the APSIM simulator, t
 - Various model development, testing and documentation tools.
 - A web based user and developer support facility that provides documentation, distribution and defect/change request tracking.
 
-#### What is a MET File
+### What is a MET File
 
 The APSIM Met module provided daily meteorological information to all modules within an APSIM simulation. The APSIM Met Module requires parameters to specify the climate of the site for each APSIM time step. This information is included in a [MET file](https://www.apsim.info/documentation/model-documentation/infrastructure-and-management-documentation/met/).
 
@@ -71,9 +71,9 @@ The MET file must also have a year and day column (or date formatted as *yyyy/mm
 
 While *point* data is usually available in MET format at the [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/) webpage, *gridded data* is provided in NetCDF file format which is difficult to store and convert to an input file readable by [APSIM](https://www.apsim.info) or other crop models. **BestiaPop** takes care of generating the required input files for APSIM.
 
-### DSSAT
+## DSSAT
 
-#### What is DSSAT?
+### What is DSSAT?
 
 The Decision Support System for Agrotechnology Transfer (DSSAT) is a software application program that comprises crop simulation models for over 42 crops (as of Version 4.7.5) as well as tools to facilitate effective use of the models. The tools include database management programs for soil, weather, crop management and experimental data, utilities, and application programs. The crop simulation models simulate growth, development and yield as a function of the soil-plant-atmosphere dynamics.
 
@@ -81,13 +81,13 @@ DSSAT and its crop simulation models have been used for a wide range of applicat
 
 The crop models require daily weather data, soil surface and profile information, and detailed crop management as input. Crop genetic information is defined in a crop species file that is provided by DSSAT and cultivar or variety information that should be provided by the user. Simulations are initiated either at planting or prior to planting through the simulation of a bare fallow period. These simulations are conducted at a daily step or in some cases, at an hourly time step depending on the process and the crop model. At the end of each day, the plant and soil water, nitrogen, phosphorus, and carbon balances are updated, as well as the crop’s vegetative and reproductive development stage.
 
-#### What is a WHT File
+### What is a WHT File
 
 The three key variables in a DSSAT weather file are precipitation, minimum and maximum temperature and solar radiation. [*.WHT](http://www.ukm.my/seaclid-cordex/files/Rice%20Pilot%20Project%20Workshop/PRESENTATION-PDF/20140922-1430-1445-Weather%20data%20format%20of%20%20DSSAT%20model--%20Attachai.pdf) (analogous as *.MET in APSIM) has been defined as the standardized file format for DSSAT. The **latitude**,**longitude**, **tav** and **amp** parameters are also mandatory for these files.
 
-## Climate Data Sources
+# Climate Data Sources
 
-### About SILO
+## About SILO
 
 SILO (Scientific Information for Land Owners) is a database of Australian climate data from 1889 to the present. It provides daily meteorological datasets for a range of climate variables in ready-to-use formats suitable for biophysical crop modelling, research and climate applications.
 
@@ -98,7 +98,7 @@ SILO is an enabling technology which allows users to focus on their research, wi
 
 SILO is hosted by the Queensland Department of Environment and Science (DES). The data system began in 1996 as a collaborative project between the Queensland Government and the Australian Bureau of Meteorology (BoM) sponsored by the Land and Water Resources Research and Development Corporation. The datasets are constructed from observational data obtained from BoM.
 
-#### NetCDF and API data variations from SILO
+### NetCDF and API data variations from SILO
 
 There are particular years where some data may be different when you read the data from a ``NetCDF SILO file``, as opposed to reading the same data from the ``SILO API``. Below is a detailed description of the SILO team as to why this might happen.
 
@@ -118,7 +118,7 @@ If you request data at station locations the same checks are done; the main diff
 
 Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in Jeffrey et al. 2001 (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
 
-### About NASAPOWER
+## About NASAPOWER
 
 NASA's goal in Earth science is to observe, understand, and model the Earth system to discover how it is changing, to better predict change, and to understand the consequences for life on Earth. The Applied Sciences Program, within the Science Mission Directorate (which replaced both the Office of Earth Science and the Office of Space Science), serves NASA and Society by expanding and accelerating the realization of societal and economic benefits from Earth science, information, and technology research and development.
 
@@ -158,6 +158,18 @@ BestiaPop has three primary commands that you can pass in with the `-a` option:
 3. **convert-nc4**: *currently not implemented*, this command will allow you to convert NetCDF4 files to other formats like `json` or `csv`.
 
 ## Examples
+
+### Download NetCDF4 Files
+
+#### Download SILO climate files for years 2010 to 2018 for and maximum air temperature
+
+This command will **only** download the file from the cloud, it won't perform any further processing.
+
+> **NOTE**: a year range must be separated by a dash, whereas multiple climate variables are separated by spaces
+
+```powershell
+python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
+```
 
 ### Generate Climate File
 
@@ -208,18 +220,6 @@ C:\input\folder:
 python bestiapop.py -a generate-climate-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -o C:\some\output\folder\ -ot met
 ```
 
-### Download NetCDF4 Files
-
-#### Download SILO climate files for years 2010 to 2018 for and maximum air temperature
-
-This command will **only** download the file from the cloud, it won't perform any further processing.
-
-> **NOTE**: a year range must be separated by a dash, whereas multiple climate variables are separated by spaces
-
-```powershell
-python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
-```
-
 ## Parallel Computing
 
 **BestiaPop** as of version 2.5 comes with parallel processing for multicore systems by leveraging python's multiprocessing library. Not all actions have implemented this functionality yet but they will be added progressively. To enable multiprocessing just pass in the `-m` flag to the `bestiapop.py` command. By default it will leverage **all your cores** (whether physical or logical).
@@ -237,24 +237,24 @@ python bestiapop.py -a generate-climate-file -s silo -y "2008-2016" -c "radiatio
 
 Here, the `-m` at the end will engage multiple cores to process the tasks. If you have 8 available cores it will create 8 separate processes to download the data from the cloud and will then use 8 separate processes to generate the output files.
 
-## BestiaPop products
+# BestiaPop products
 
-### MET file example (APSIM)
+## MET file example (APSIM)
 
 ![image](/sample_data/products/met.jpg)
 Complete MET file [here](/sample_data/products/-41.0-145.0.met) 
 
-### WHT file example (DSSAT)
+## WHT file example (DSSAT)
 
 ![image](/sample_data/products/wht.jpg)
-Complete WHT file [here](/sample_data/products/-4101450161.WHT) 
+Complete WHT file [here](/sample_data/products/-4101450161.WHT)
 
-# Main References (The following papers implemented this code and can be used as references)
+# Main Reference (The following paper implemented this code and can be used as reference)
 
 1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2019) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
 
 # Package references
 
-1. https://registry.opendata.aws/silo/ 
+1. https://registry.opendata.aws/silo/
 2. https://towardsdatascience.com/handling-netcdf-files-using-xarray-for-absolute-beginners-111a8ab4463f
-3. http://xarray.pydata.org/en/stable/dask.html 
+3. http://xarray.pydata.org/en/stable/dask.html
