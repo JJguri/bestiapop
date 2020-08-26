@@ -3,10 +3,16 @@ import logging
 import numpy as np
 import os
 import requests
+import pandas as pd
 import s3fs
+import sys
 import xarray as xr
+
 from pathlib import Path
 from tqdm import tqdm
+
+from connectors import (silo_connector, nasapower_connector)
+from producers import output
 
 class MyUtilityBeast():
     """This class will provide methods to perform generic or shared operations on data
@@ -221,7 +227,10 @@ class MyUtilityBeast():
                         if int(lat_value_count+1) != len(lat_range):
                             # Must get rid of last float
                             lat_range = np.delete(lat_range,(len(lat_range)-1),0)
-                
+                else:
+                    # when only a single lat is passed in
+                    lat_range = coordinate_range
+
                 return lat_range
 
         elif coordinate_type == "longitude":
@@ -248,4 +257,134 @@ class MyUtilityBeast():
                             # Must get rid of last float
                             lon_range = np.delete(lon_range,(len(lon_range)-1),0)
 
+                else:
+                    # when only a single lon is passed in
+                    lon_range = coordinate_range
+
                 return lon_range
+
+    def generate_climate_dataframe_from_disk(self, year_range, climate_variables, lat_range, lon_range, input_dir, data_source="silo"):
+        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument. The values will be sourced from Disk.
+        Args:
+            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data.
+            climate_variables (str): the climate variable short name as per SILO or NASAPOWER nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. For NASAPOWER check: XXXXX.
+            lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
+            lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
+            input_dir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
+        Returns:
+            tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
+        """
+
+        # We will iterate through each "latitude" value and, 
+        # within this loop, we will iterate through all the different 
+        # "longitude" values for a given year. Results for each year
+        # are collected inside the "met_df" with "met_df.append"
+        # At the end, it will output a file with all the contents if
+        # "output_to_file=True" (by default it is "True")
+
+        self.logger.debug('Generating DataFrames')
+
+        # empty df to append all the met_df to
+        total_climate_df = pd.DataFrame()
+
+        # create an empty list to keep track of lon coordinates
+        # where there are no values
+        empty_lon_coordinates = []
+
+        # Initialize BestiaPop required class instances
+        silo = silo_connector.SILOClimateDataConnector(data_source=data_source, input_path=self.input_path, climate_variables=climate_variables)
+        nasapower = nasapower_connector.NASAPowerClimateDataConnector(data_source=data_source, input_path=self.input_path, climate_variables=climate_variables)
+
+        # Loading and/or Downloading the files
+        for year in tqdm(year_range, file=sys.stdout, ascii=True, desc="Total Progress"):
+            self.logger.debug('Processing data for year {}'.format(year))
+
+            for climate_variable in tqdm(climate_variables, ascii=True, desc="Climate Variable"):
+                self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
+
+                # Opening the target CDF database
+                # We need to check:
+                # (1) should we fetch the data directly from the cloud via an API or S3 bucket
+                # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
+
+                # if an input directory was provided
+                if self.input_path is not None:
+
+                    if input_dir.is_dir() == True:
+                        sourcefile = str(year) + "." + climate_variable + ".nc"
+                        sourcepath = input_dir/sourcefile
+                    elif input_dir.is_file() == True:
+                        sourcepath = input_dir
+
+                    if sourcepath.exists() == False:
+                        self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
+                        continue
+                    
+                    data = self.load_cdf_file(sourcepath, climate_variable)
+
+                # Now iterating over lat and lon combinations
+                # Each year-lat-lon matrix generates a different file
+
+                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+
+                    for lon in lon_range:
+
+                        # Skipping any longitude points that have already been proven to not contain any data
+                        # This adds a slight performance improvement too
+                        if lon in empty_lon_coordinates:
+                            continue
+
+                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, year))
+
+                        # here we are checking whether the get_values_from_cdf function
+                        # returns with a ValueError (meaning there were no values for
+                        # that particular lat & long combination). If it does return
+                        # with an error, we skip this loop and don't produce any output files
+                    
+                        try:
+                            # Local file, read from input directory
+                            if data_source == "silo":
+                                var_year_lat_lon_df = silo.get_yearly_data(
+                                                                            lat=lat, 
+                                                                            lon=lon, 
+                                                                            value_array=data['value_array'], 
+                                                                            year=year,
+                                                                            year_range=year_range,
+                                                                            climate_variable=climate_variable
+                                                                        )
+                            elif data_source == "nasapower":
+                                var_year_lat_lon_df = nasapower.get_yearly_data(
+                                                                            lat=lat, 
+                                                                            lon=lon, 
+                                                                            value_array=data['value_array'], 
+                                                                            year=year,
+                                                                            year_range=year_range,
+                                                                            climate_variable=climate_variable
+                                                                        )
+
+                        except ValueError:
+                            self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
+                            self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
+                            # Append empty lon value to list
+                            empty_lon_coordinates.append(lon)
+                            continue
+                        
+                        # delete the var_year_lat_lon_df back to zero.
+                        total_climate_df = total_climate_df.append(var_year_lat_lon_df)
+                        del var_year_lat_lon_df
+
+                # We reached the end of the year loop
+                # we need must close the open handle to the s3fs file to free up resources
+                if self.input_path is None:
+                    try:
+                        self.remote_file_obj.close()
+                        self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
+                    except AttributeError:
+                        self.logger.debug("Closing handle to remote s3fs file not required. Using an API endpoint instead of a cloud NetCDF4 file")
+
+        # Remove any empty lon values from longitude array so as to avoid empty MET generation
+        empty_lon_array = np.array(empty_lon_coordinates)
+        final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
+
+        # Return results
+        return (total_climate_df, final_lon_range)

@@ -111,7 +111,7 @@ class NASAPowerClimateDataConnector():
             days = np.arange(0,365,1)
 
         # If we are attempting to read from NasaPower, use it's API instead of Xarray
-        if self.data_source == "nasapower" and self.input_path is None:
+        if self.input_path is None:
             
             self.logger.info("Extracting data from NASA POWER Climate DataBase")
 
@@ -282,18 +282,20 @@ class NASAPowerClimateDataConnector():
 
         # Now iterating over lat and lon combinations
         # Each year-lat-lon matrix generates a different file
-        for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+        for lat in tqdm(lat_range, file=sys.stdout, ascii=True, desc="Total Progress"):
 
-            for lon in tqdm(lon_range, ascii=True, desc="Longitude"):
+            for lon in lon_range:
 
                 if lon in empty_lon_coordinates:
                     continue
 
-                for climate_variable in tqdm(climate_variables, ascii=True, desc="Climate Variable"):
+                for climate_variable in climate_variables:
+
                     self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
 
                     # Loading and/or Downloading the files
-                    for year in tqdm(year_range, ascii=True, desc="Year"):
+                    for year in year_range:
+
                         self.logger.debug('Processing data for year {}'.format(year))
 
                         self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, year))

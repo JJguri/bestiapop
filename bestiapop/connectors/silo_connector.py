@@ -107,7 +107,7 @@ class SILOClimateDataConnector():
             days = np.arange(0,365,1)
 
         # If we are attempting to read from the cloud, use SILO's API instead of Xarray
-        if self.data_source == "silo" and self.input_path is None:
+        if self.input_path is None:
 
             self.logger.debug("Extracting data from SILO API")
 
@@ -279,7 +279,7 @@ class SILOClimateDataConnector():
 
         # Now iterating over lat and lon combinations
         # Each year-lat-lon matrix generates a different file
-        for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
+        for lat in tqdm(lat_range, file=sys.stdout, ascii=True, desc="Total Progress"):
 
             for lon in lon_range:
 

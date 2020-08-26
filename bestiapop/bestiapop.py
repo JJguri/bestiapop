@@ -251,15 +251,16 @@ class CLIMATEBEAST():
         self.climate_variables = climate_variables
         
         # Get a handle to an instance of BestiaPop Utilities
-        my_beast_utils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
+        beastutils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
 
         # Obtain year range list
-        self.year_range = my_beast_utils.get_years_list(year_range)
+        self.year_range = beastutils.get_years_list(year_range)
 
         # Obtain coordinates range
-        # The granularity of the returned range will depend whether the source data is SILO or NASA POWER
-        self.lat_range = my_beast_utils.get_coordinate_numpy_list(lat_range, "latitude", self.data_source)
-        self.lon_range = my_beast_utils.get_coordinate_numpy_list(lon_range, "longitude", self.data_source)
+        if action != "download-nc4-file":
+            # The granularity of the returned range will depend whether the source data is SILO or NASA POWER
+            self.lat_range = beastutils.get_coordinate_numpy_list(lat_range, "latitude", self.data_source)
+            self.lon_range = beastutils.get_coordinate_numpy_list(lon_range, "longitude", self.data_source)
 
         # Validate output directory
         if self.outputdir.is_dir() == True:
@@ -278,6 +279,9 @@ class CLIMATEBEAST():
         Args:
             action {'download-nc4-file', 'convert-nc4', 'generate-climate-file'} (string): the type of action to be performed in parallel. Example: download-nc4-file, convert-nc4, generate-climate-file
         """
+
+        # Creating instances of required BestiaPop classes
+        self.beastutils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
 
         # Let's check what's inside the "action" variable and invoke the corresponding function
         if action == "download-nc4-file":
@@ -318,6 +322,17 @@ class CLIMATEBEAST():
                 else:
                     self.parallel_var = "lat"
                     parallel_var_range = self.lat_range
+                
+                # If an input path was provided, then we need to parallelize based on years
+                # this will override any previous values for parallel_var_range
+                # however, when the output routine comes, we need to pass in the lat/lon choice
+                # since it's what will have the actual impact, because climate files contain many years
+                # in a single file, but different files per lat/lon combination
+                if self.input_path != None:
+                    previus_parallel_var = self.parallel_var
+                    self.parallel_var = "year"
+                    previous_parallel_var_range = parallel_var_range
+                    parallel_var_range = self.year_range
 
                 multiproc_manager = mp.Manager()
                 self.multiproc_event = multiproc_manager.Event()
@@ -353,7 +368,11 @@ class CLIMATEBEAST():
                 self.logger.info("Processing Output in Parallel")
                 self.logger.info("\x1b[47m \x1b[32mGenerating PARALLEL WORKER POOL consisting of {} WORKERS \x1b[0m \x1b[39m".format(mp.cpu_count()))
                 worker_pool = mp.Pool(mp.cpu_count())
-                worker_jobs = worker_pool.map_async(self.process_parallel_output, parallel_var_range)
+                if self.parallel_var == "year":
+                    self.parallel_var = previus_parallel_var
+                    worker_jobs = worker_pool.map_async(self.process_parallel_output, previous_parallel_var_range)
+                else:
+                    worker_jobs = worker_pool.map_async(self.process_parallel_output, parallel_var_range)
                 worker_pool.close()
                 while True:
                     if not worker_jobs.ready():
@@ -433,8 +452,8 @@ class CLIMATEBEAST():
                         )
 
             else:
-                final_df_latlon_tuple_list = self.generate_climate_dataframe_from_disk(
-                    year_range=[year],
+                final_df_latlon_tuple_list = self.beastutils.generate_climate_dataframe_from_disk(
+                    year_range=[parallel_var_single_value],
                     climate_variables=self.climate_variables, 
                     lat_range=self.lat_range,
                     lon_range=self.lon_range,
@@ -514,8 +533,11 @@ class CLIMATEBEAST():
             if self.output_type == "json":
                 self.logger.info('Action {} not implemented yet'.format(action))
 
-        elif action == "generate-climate-file":      
+        elif action == "generate-climate-file":    
             self.logger.info('Extracting data and converting to {} format'.format(self.output_type))
+
+            # Creating instances of required BestiaPop classes
+            beastutils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
 
             # 1. Let's invoke generate_climate_dataframe with the appropriate options
             if self.input_path is None:
@@ -551,7 +573,7 @@ class CLIMATEBEAST():
                         input_dir=self.input_path
                     )
             else:
-                final_df_latlon_tuple_list = self.generate_climate_dataframe_from_disk(
+                final_df_latlon_tuple_list = beastutils.generate_climate_dataframe_from_disk(
                     year_range=self.year_range,
                     climate_variables=self.climate_variables, 
                     lat_range=self.lat_range,
@@ -572,119 +594,6 @@ class CLIMATEBEAST():
                 outputdir=self.outputdir,
                 output_type=self.output_type
             )
-
-    def generate_climate_dataframe_from_disk(self, year_range, climate_variables, lat_range, lon_range, input_dir):
-        """This function generates a dataframe containing (a) climate values (b) for every variable requested (c) for every day of the year (d) for every year passed in as argument. The values will be sourced from Disk.
-        Args:
-            year_range (numpy.ndarray): a numpy array with all the years for which we are seeking data.
-            climate_variables (str): the climate variable short name as per SILO or NASAPOWER nomenclature. For SILO check https://www.longpaddock.qld.gov.au/silo/about/climate-variables/. For NASAPOWER check: XXXXX.
-            lat_range (numpy.ndarray): a numpy array of latitude values to extract data from
-            lon_range (numpy.ndarray): a numpy array of longitude values to extract data from
-            input_dir (str): when selecting the option to generate Climate Data Files from local directories, this parameter must be specified, otherwise data will be fetched directly from the cloud either via an available API or S3 bucket.
-        Returns:
-            tuple: a tuple consisting of (a) the final dataframe containing values for all years, latitudes and longitudes for a particular climate variable, (b) the curated list of longitude ranges (which excludes all those lon values where there were no actual data points). The tuple is ordered as follows: (final_dataframe, final_lon_range)
-        """
-
-        # We will iterate through each "latitude" value and, 
-        # within this loop, we will iterate through all the different 
-        # "longitude" values for a given year. Results for each year
-        # are collected inside the "met_df" with "met_df.append"
-        # At the end, it will output a file with all the contents if
-        # "output_to_file=True" (by default it is "True")
-
-        self.logger.debug('Generating DataFrames')
-
-        # empty df to append all the met_df to
-        total_climate_df = pd.DataFrame()
-
-        # create an empty list to keep track of lon coordinates
-        # where there are no values
-        empty_lon_coordinates = []
-
-        # Initialize BestiaPop required class instances
-        silo = silo_connector.SILOClimateDataConnector(data_source=self.data_source, input_path=self.input_path, climate_variables=climate_variables)
-        nasapower = nasapower_connector.NASAPowerClimateDataConnector(data_source=self.data_source, input_path=self.input_path, climate_variables=climate_variables)
-        beastutils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
-
-        # Loading and/or Downloading the files
-        for year in tqdm(year_range, ascii=True, desc="Year"):
-            self.logger.debug('Processing data for year {}'.format(year))
-
-            for climate_variable in tqdm(climate_variables, ascii=True, desc="Climate Variable"):
-                self.logger.debug('Processing data for climate variable {}'.format(climate_variable))
-
-                # Opening the target CDF database
-                # We need to check:
-                # (1) should we fetch the data directly from the cloud via an API or S3 bucket
-                # (2) if files should be fetched locally, whether the user passed a directory with multiple files or just a single file to process.
-
-                # if an input directory was provided
-                if self.input_path is not None:
-
-                    if input_dir.is_dir() == True:
-                        sourcefile = str(year) + "." + climate_variable + ".nc"
-                        sourcepath = input_dir/sourcefile
-                    elif input_dir.is_file() == True:
-                        sourcepath = input_dir
-
-                    if sourcepath.exists() == False:
-                        self.logger.error('Could not find file {}. Please make sure you have downloaded the required netCDF4 files in the format "year.variable.nc" to the input directory. Skipping...'.format(sourcepath))
-                        continue
-                    
-                    data = beastutils.load_cdf_file(sourcepath, climate_variable)
-
-                # Now iterating over lat and lon combinations
-                # Each year-lat-lon matrix generates a different file
-
-                for lat in tqdm(lat_range, ascii=True, desc="Latitude"):
-
-                    for lon in lon_range:
-
-                        # Skipping any longitude points that have already been proven to not contain any data
-                        # This adds a slight performance improvement too
-                        if lon in empty_lon_coordinates:
-                            continue
-
-                        self.logger.debug('Processing Variable {} - Lat {} - Lon {} for Year {}'.format(climate_variable, lat, lon, year))
-
-                        # here we are checking whether the get_values_from_cdf function
-                        # returns with a ValueError (meaning there were no values for
-                        # that particular lat & long combination). If it does return
-                        # with an error, we skip this loop and don't produce any output files
-                    
-                        try:
-                            # Local file, read from input directory
-                            if self.data_source == "silo":
-                                var_year_lat_lon_df = silo.get_yearly_data(lat, lon, data['value_array'], year, climate_variable)
-                            elif self.data_source == "nasapower":
-                                var_year_lat_lon_df = nasapower.get_yearly_data(lat, lon, data['value_array'], year, climate_variable)
-
-                        except ValueError:
-                            self.logger.warning("This longitude value will be skipped for the rest of the climate variables and years")
-                            self.logger.warning("Deleting lon {} in array position {}".format(lon, np.where(lon_range == lon)[0][0]))
-                            # Append empty lon value to list
-                            empty_lon_coordinates.append(lon)
-                            continue
-                        
-                        # delete the var_year_lat_lon_df back to zero.
-                        total_climate_df = total_climate_df.append(var_year_lat_lon_df)
-                        del var_year_lat_lon_df
-
-                # We reached the end of the year loop
-                # we need must close the open handle to the s3fs file to free up resources
-                if self.input_path is None:
-                    try:
-                        self.remote_file_obj.close()
-                        self.logger.debug("Closed handle to cloud s3fs file {}".format(self.silo_file))
-                    except AttributeError:
-                        self.logger.debug("Closing handle to remote s3fs file not required. Using an API endpoint instead of a cloud NetCDF4 file")
-
-        # Remove any empty lon values from longitude array so as to avoid empty MET generation
-        empty_lon_array = np.array(empty_lon_coordinates)
-        final_lon_range = np.setdiff1d(lon_range, empty_lon_array)
-
-        # Return results
-        return (total_climate_df, final_lon_range)
 
 def main():
   # Setup logging

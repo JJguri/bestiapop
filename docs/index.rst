@@ -21,14 +21,14 @@ BestiaPop
 BestiaPop: A python package to automate the extraction and processing of climate data for crop modelling
 ========================================================================================================
 
-Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. However, *Crop Modelling* software expects input data to be encapsulated in custom file formats (``MET``, ``WHT``, etc.) which don't conform to a common standard and require various customizations, depending on the prediction engine that generates crop models. Moreover, source data providers like [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/) or [NASA POWER](https://power.larc.nasa.gov/) are usually neutral in the type of data output files they provide as part of their API services which leads to a gap between source *raw* data and *processed* data required by crop modelling suites to develop their models. We developed **BestiaPop** (a spanish word that translates to *pop beast*), a Python package which allows model users to automatically download SILO's (Scientific Information for Land Owners) or NASAPOWER gridded climate data and convert this data to files that can be ingested by *Crop Modelling* software like APSIM or DSSAT. 
+Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. However, *Crop Modelling* software expects input data to be encapsulated in custom file formats (``MET``, ``WHT``, etc.) which don't conform to a common standard and require various customizations, depending on the prediction engine that generates crop models. Moreover, source data providers like `SILO`_ or `NASA POWER`_ are usually neutral in the type of data output files they provide as part of their API services which leads to a gap between source *raw* data and *processed* data required by crop modelling suites to develop their models. We developed **BestiaPop** (a spanish word that translates to *pop beast*), a Python package which allows model users to automatically download SILO's (Scientific Information for Land Owners) or NASAPOWER gridded climate data and convert this data to files that can be ingested by *Crop Modelling* software like APSIM or DSSAT. 
 
 The package offers the possibility to select a range of grids (5 km × 5 km resolution) and years producing various types of output files: CSV, MET (for APSIM), WHT (for DSSAT) and soon JSON (which will become part of BestiaPop's API in the future).
 
 Curently, the code downloads data from two different climate databases:
 
-1. [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/)
-2. [NASA POWER](https://power.larc.nasa.gov/)
+1. `SILO`_
+2. `NASA POWER`_
 
 Authors
 ~~~~~~~
@@ -130,7 +130,7 @@ If a given datum (or pair of data values for the Tmax > Tmin check) fails the ch
 
 If you request data at station locations the same checks are done; the main difference is observed data are provided where possible, and gridded data are provided if observed data are not available on a given day(s).
 
-  Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in our 2001 paper (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
+  Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in our 2001 paper (see the `Publications section on SILO <https://www.longpaddock.qld.gov.au/silo/about/publications-references/>`_).
 
 More information
 ~~~~~~~~~~~~~~~~

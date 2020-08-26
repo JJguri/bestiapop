@@ -73,6 +73,12 @@ class DATAOUTPUT():
             secondary_var_desc = "lat"
             primary_var = lon_range
             secondary_var = lat_range
+        else:
+            # by default, let's leave "lat" as the primary var
+            primary_var_desc = "lat"
+            secondary_var_desc = "lon"
+            primary_var = lat_range
+            secondary_var = lon_range
 
         if output_type == "stdout":
 
@@ -240,7 +246,8 @@ class DATAOUTPUT():
         # Text alignment looks weird here but it must be left this way for proper output
         met_file_j2_template = '''[weather.met.weather]
 !station number={{ lat }}-{{ lon }}
-!This climate file is created by BestiaPop on {{ current_date }}
+!This climate file was created by BestiaPop on {{ current_date }} - Taming the Climate Beast
+!Check our docs in https://bestiapop.readthedocs.io/en/latest/
 !Source: {{ data_source }}
 !Date period from: {{ year_from }} to {{ year_to }}
 Latitude={{ lat }}
@@ -289,13 +296,29 @@ year day radn maxt mint rain
         tav = tmeanbymonth.mean().tmean.round(decimals=5)
         
         # Configure some header variables
-        current_date = datetime.now().strftime("%d/%m/%Y")
-        data_source = "SILO"
+        current_date = datetime.now().strftime("%d%m%Y")
+        year_from = met_dataframe.year.min()
+        year_to = met_dataframe.year.max()
+        if self.data_source == "silo":
+            data_source="SILO (Scientific Information for Land Owners) (https://www.longpaddock.qld.gov.au/silo/)"
+        elif self.data_source == "nasapower":
+            data_source="NASA POWER (https://power.larc.nasa.gov/)"
+
 
         # Delete df
         del met_dataframe
 
-        in_memory_met = j2_template.render(lat=lat, lon=lon, tav=tav, amp=amp, data_source=self.data_source.upper(), vardata=met_df_text_output)
+        in_memory_met = j2_template.render(
+                                            lat=lat,
+                                            lon=lon,
+                                            tav=tav,
+                                            amp=amp,
+                                            data_source=data_source,
+                                            current_date=current_date,
+                                            year_from=year_from,
+                                            year_to=year_to,
+                                            vardata=met_df_text_output
+                                        )
         df_output_buffer.close()
 
         full_output_path = outputdir/'{}-{}.met'.format(lat, lon)
@@ -332,7 +355,7 @@ year day radn maxt mint rain
         # Make a copy of the original dataframe so as to remove unnecessary values for the WHT file
         # but to leave the values required to calculate TAV and AMP
         wht_df_2 = wht_dataframe.copy()
-        # remove year
+        # remove year but first capture it for output file name
         del wht_df_2['year']
         # remove day
         del wht_df_2['day']
@@ -340,7 +363,6 @@ year day radn maxt mint rain
         wht_df_2 = wht_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
         wht_var_data_ascii = tabulate(wht_df_2.set_index('@DATE'), tablefmt='plain', numalign='right', stralign='right', headers=wht_df_2.columns.values)
         df_output_buffer.write(wht_var_data_ascii)
-        #wht_df_2.to_csv(df_output_buffer, sep=" ", header=False, na_rep="NaN", index=False, mode='w', float_format='%.1f')
         # delete df copy
         del wht_df_2
 
@@ -375,8 +397,9 @@ year day radn maxt mint rain
         # Create WHT Header values
         # We don't have elevation?
         elev = -99.0
+        station_hex_name = hex(14590)[2:]
         wht_header_dict = {
-            '@ INSI':  ["DIJY"],
+            '@ INSI':  [station_hex_name],
             'LAT':     [lat],
             'LONG':     [lon],
             'ELEV':     [elev],
@@ -386,18 +409,39 @@ year day radn maxt mint rain
             'WNDHT':     [-99.0],
         }
         wht_dssat_header = pd.DataFrame(wht_header_dict)
-        wht_header = tabulate(wht_dssat_header.set_index('@ INSI'), tablefmt='plain', numalign='right', stralign='right', headers=wht_dssat_header.columns.values, floatfmt=('', '.3f', '.3f', '.1f', '.1f', '.1f', '.1f', '.1f'))
+        wht_header = tabulate(
+            wht_dssat_header.set_index('@ INSI'),
+            tablefmt='plain',
+            numalign='right',
+            stralign='right',
+            headers=wht_dssat_header.columns.values,
+            floatfmt=('', '.3f', '.3f', '.1f', '.1f', '.1f', '.1f', '.1f')
+        )
         # Get rid of Tabulate's annoying double-space padding
         wht_header = re.sub(r"^\s\s", "", wht_header)
         wht_header = re.sub(r"\n\s\s", "\n", wht_header) 
 
+        # Get vales to configure WHT file name as per DSSAT convention
+        flat = str(lat).replace(".", "")
+        flon = str(lon).replace(".", "")
+        fyear_array = wht_dataframe['dssatday'].apply(lambda x: int(str(x)[:2:])).unique()
+        fyear = fyear_array[0]
+        fyear_len = len(fyear_array)
+
         # Delete df
         del wht_dataframe
 
-        in_memory_dssat = j2_template.render(lat=lat, lon=lon, wht_header=wht_header, vardata=wht_df_text_output)
+        in_memory_dssat = j2_template.render(
+                                            lat=lat,
+                                            lon=lon,
+                                            wht_header=wht_header,
+                                            vardata=wht_df_text_output
+                                        )
         df_output_buffer.close()
 
-        full_output_path = outputdir/'{}-{}.WHT'.format(lat, lon)
+
+
+        full_output_path = outputdir/'{}{}{}{}.WHT'.format(flat, flon, fyear, fyear_len)
         with open(full_output_path, 'w+') as f:
             self.logger.info('Writting WHT file {}'.format(full_output_path))
             f.write(in_memory_dssat)
