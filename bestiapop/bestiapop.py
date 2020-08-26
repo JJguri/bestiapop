@@ -2,7 +2,7 @@
 
 '''
     NAME: BESTIAPOP (POPBEAST) ("My heroe es, la gran bestia pop!", thanks Redonditos de Ricota)
-    DESCRIPTION: A python package to automate the extraction and processing of climate data from SILO and NASAPOWER.
+    DESCRIPTION: A python package to automate the extraction and processing of climate data for crop modelling.
     VERSION: 3.0
 
     DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
