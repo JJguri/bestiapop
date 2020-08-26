@@ -237,13 +237,17 @@ python bestiapop.py -a generate-climate-file -s silo -y "2008-2016" -c "radiatio
 
 Here, the `-m` at the end will engage multiple cores to process the tasks. If you have 8 available cores it will create 8 separate processes to download the data from the cloud and will then use 8 separate processes to generate the output files.
 
-#### BestiaPop products
+## BestiaPop products
 
 ### MET file example (APSIM)
 
 ![image](/sample_data/products/met.jpg)
+Complete MET file [here](/sample_data/products/-41.0-145.0.met) 
 
 ### WHT file example (DSSAT)
+
+![image](/sample_data/products/wht.jpg)
+Complete WHT file [here](/sample_data/products/-4101450161.wht) 
 
 # Main References (The following papers implemented this code and can be used as references)
 
