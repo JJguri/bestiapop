@@ -85,6 +85,45 @@ The crop models require daily weather data, soil surface and profile information
 
 The three key variables in a DSSAT weather file are precipitation, minimum and maximum temperature and solar radiation. [*.WHT](http://www.ukm.my/seaclid-cordex/files/Rice%20Pilot%20Project%20Workshop/PRESENTATION-PDF/20140922-1430-1445-Weather%20data%20format%20of%20%20DSSAT%20model--%20Attachai.pdf) (analogous as *.MET in APSIM) has been defined as the standardized file format for DSSAT. The **latitude**,**longitude**, **tav** and **amp** parameters are also mandatory for these files.
 
+## Climate Data Sources
+
+### About SILO
+
+SILO (Scientific Information for Land Owners) is a database of Australian climate data from 1889 to the present. It provides daily meteorological datasets for a range of climate variables in ready-to-use formats suitable for biophysical crop modelling, research and climate applications.
+
+SILO is an enabling technology which allows users to focus on their research, without the burden of data preparation. SILO products support research through providing:
+
+- national coverage, with infilled values for missing data, and
+- datasets being model ready, in a variety of formats.
+
+SILO is hosted by the Queensland Department of Environment and Science (DES). The data system began in 1996 as a collaborative project between the Queensland Government and the Australian Bureau of Meteorology (BoM) sponsored by the Land and Water Resources Research and Development Corporation. The datasets are constructed from observational data obtained from BoM.
+
+#### NetCDF and API data variations from SILO
+
+There are particular years where some data may be different when you read the data from a ``NetCDF SILO file``, as opposed to reading the same data from the ``SILO API``. Below is a detailed description of the SILO team as to why this might happen.
+
+When you request point data at grid cell locations, the data is extracted from the relevant grid cell in the NetCDF files. This data is then passed through a simple filter that checks if each datum is within an acceptable range:
+
+  * daily rainfall: 0 – 1300 mm
+  * maximum temperature: -9 - 54 ᵒC
+  * minimum temperature: -20 - 40 ᵒC
+  * class A pan evaporation: 0 - 35 mm
+  * solar radiation: 0 - 35 MJ/m2
+  * vapour pressure: 0 - 43.2 hPa
+  * maximum temperature > minimum temperature
+
+If a given datum (or pair of data values for the Tmax > Tmin check) fails the check, it/they may be erroneous so SILO provides the long term daily mean(s) instead. This is represented by a number *75* in the value for a particular datum.
+
+If you request data at station locations the same checks are done; the main difference is observed data are provided where possible, and gridded data are provided if observed data are not available on a given day(s).
+
+Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in Jeffrey et al. 2001 (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
+
+### About NASAPOWER
+
+NASA's goal in Earth science is to observe, understand, and model the Earth system to discover how it is changing, to better predict change, and to understand the consequences for life on Earth. The Applied Sciences Program, within the Science Mission Directorate (which replaced both the Office of Earth Science and the Office of Space Science), serves NASA and Society by expanding and accelerating the realization of societal and economic benefits from Earth science, information, and technology research and development.
+
+The Prediction Of Worldwide Energy Resources (POWER) project was initiated to improve upon the current renewable energy data set and to create new data sets from new satellite systems. The POWER project targets three user communities: (1) Renewable Energy, (2) Sustainable Buildings, and (3) Agroclimatology. The Agroclimatology Archive is designed to provide web-based access to industry-friendly parameters formatted for input to crop models contained within agricultural DSS.
+
 # Installation
 
 1. Clone this repo
@@ -181,7 +220,7 @@ This command will **only** download the file from the cloud, it won't perform an
 python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 ```
 
-## PARALLEL COMPUTING
+## Parallel Computing
 
 **BestiaPop** as of version 2.5 comes with parallel processing for multicore systems by leveraging python's multiprocessing library. Not all actions have implemented this functionality yet but they will be added progressively. To enable multiprocessing just pass in the `-m` flag to the `bestiapop.py` command. By default it will leverage **all your cores** (whether physical or logical).
 
@@ -200,7 +239,11 @@ Here, the `-m` at the end will engage multiple cores to process the tasks. If yo
 
 #### BestiaPop products
 
-add examples of MET and WHT files here
+### MET file example (APSIM)
+
+![image](/sample_data/products/met.jpg)
+
+### WHT file example (DSSAT)
 
 # Main References (The following papers implemented this code and can be used as references)
 
