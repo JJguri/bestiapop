@@ -12,11 +12,17 @@ Base Classes
 .. autoclass:: bestiapop.CLIMATEBEAST
    :members:
 
-.. autoclass:: bestiapop.producers.output.DATAOUTPUT
+.. autoclass:: producers.output.DATAOUTPUT
    :members:
 
-.. autoclass:: bestiapop.connectors.silo_connector.SILOClimateDataConnector
+.. autoclass:: connectors.silo_connector.SILOClimateDataConnector
    :members:
 
-.. autoclass:: bestiapop.connectors.nasapower_connector.NASAPowerClimateDataConnector
+.. autoclass:: connectors.nasapower_connector.NASAPowerClimateDataConnector
+   :members:
+
+Modules
+-------
+
+.. automodule:: common.bestiapop_utils
    :members:
