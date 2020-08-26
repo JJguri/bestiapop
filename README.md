@@ -33,17 +33,31 @@ Curently, the code downloads data from two different climate databases:
 
 * https://www.jojeda.com/project/project-6/
 
-## Crop Modelling Software
+## Process-based (mechanistic) crop models
 
-There are two major crop modelling suites in use by the scientific community in Australia: APSIM and DSSAT.
+Process-based crop models are increasingly used in agricultural decision making. In the last two decades, they have intensively contributed to crop management, environmental impact studies, climate risk assessment and climate change adaptation analysis. The number of crop models and model users is increasing and several studies have been intensively focused on model development, i.e. building or improving the science behind the model and multi-model ensembles. [APSIM](https://www.apsim.info/) (Agricultural Production Systems Simulator) and [DSSAT](https://dssat.net/) (Decision Support System for Agrotechnology Transfer) are the two major crop models used by the scientific community worldwide.
 
-**[yoni to expand]**
-
-### [APSIM](https://www.apsim.info): Agricultural Production Systems Simulator
+### APSIM
 
 #### What is APSIM?
 
 The Agricultural Production Systems Simulator (APSIM) is internationally recognised as a highly advanced platform for modelling and simulation of agricultural systems. It contains a suite of modules that enable the simulation of systems for a diverse range of crop, animal, soil, climate and management interactions. APSIM is undergoing continual development, with new capability added to regular releases of official versions. Its development and maintenance is underpinned by rigorous science and software engineering standards. The [APSIM Initiative](https://www.apsim.info/about-us/) has been established to promote the development and use of the science modules and infrastructure software of APSIM.
+
+APSIM is structured around plant, soil and management modules. These modules include a diverse range of crops, pastures and trees, soil processes including water balance, N and P transformations, soil pH, erosion and a full range of management controls. APSIM resulted from a need for tools that provided accurate predictions of crop production in relation to climate, genotype, soil and management factor while addressing the long-term resource management issues.
+
+The APSIM modelling framework is made up of the following components:
+
+- A set of biophysical modules that simulate biological and physical processes in farming systems.
+- A set of management modules that allow the user to specify the intended management rules that characterise the scenario being simulated and that control the simulation.
+- Various modules to facilitate data input and output to and from the simulation.
+- A simulation engine that drives the simulation process and facilitates communication between the independent modules.
+
+In addition to the science and infrastructure elements of the APSIM simulator, the framework also includes:
+
+- Various user interfaces for model construction, testing and application
+- Various interfaces and association database tools for visualisation and further analysis of output.
+- Various model development, testing and documentation tools.
+- A web based user and developer support facility that provides documentation, distribution and defect/change request tracking.
 
 #### What is a MET File
 
@@ -57,13 +71,19 @@ The MET file must also have a year and day column (or date formatted as *yyyy/mm
 
 While *point* data is usually available in MET format at the [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/) webpage, *gridded data* is provided in NetCDF file format which is difficult to store and convert to an input file readable by [APSIM](https://www.apsim.info) or other crop models. **BestiaPop** takes care of generating the required input files for APSIM.
 
-#### Can I use this script to generate climate files for other process-based crop models?
+### DSSAT
 
-So far, the code is producing CSV or MET files to be directly used by APSIM, however, it also could be applied to produce input climate data for other crop models such as [DSSAT](https://dssat.net/) and [STICS](https://www6.paca.inrae.fr/stics_eng/About-us/Stics-model-overview). Decision Support System for Agrotechnology Transfer (DSSAT) is a software application program that comprises dynamic crop growth simulation models for over 40 crops. DSSAT is supported by a range of utilities and apps for weather, soil, genetic, crop management, and observational experimental data, and includes example data sets for all crop models. The STICS (Simulateur mulTIdisciplinaire pour les Cultures Standard, or multidisciplinary simulator for standard crops) model is a dynamic, generic and robust model aiming to simulate the soil-crop-atmosphere system.
+#### What is DSSAT?
 
-### DSSAT: ???
+The Decision Support System for Agrotechnology Transfer (DSSAT) is a software application program that comprises crop simulation models for over 42 crops (as of Version 4.7.5) as well as tools to facilitate effective use of the models. The tools include database management programs for soil, weather, crop management and experimental data, utilities, and application programs. The crop simulation models simulate growth, development and yield as a function of the soil-plant-atmosphere dynamics.
 
-**[yoni to expand]** --> we need a section similar to what we wrote for APSIM but for DSSAT I guess...
+DSSAT and its crop simulation models have been used for a wide range of applications at different spatial and temporal scales. This includes on-farm and precision management, regional assessments of the impact of climate variability and climate change, gene-based modeling and breeding selection, water use, greenhouse gas emissions, and long-term sustainability through the soil organic carbon and nitrogen balances. DSSAT has been in used by more than 16,500 researchers, educators, consultants, extension agents, growers, and policy and decision makers in over 174 countries worldwide.
+
+The crop models require daily weather data, soil surface and profile information, and detailed crop management as input. Crop genetic information is defined in a crop species file that is provided by DSSAT and cultivar or variety information that should be provided by the user. Simulations are initiated either at planting or prior to planting through the simulation of a bare fallow period. These simulations are conducted at a daily step or in some cases, at an hourly time step depending on the process and the crop model. At the end of each day, the plant and soil water, nitrogen, phosphorus, and carbon balances are updated, as well as the crop’s vegetative and reproductive development stage.
+
+#### What is a WHT File
+
+The three key variables in a DSSAT weather file are precipitation, minimum and maximum temperature and solar radiation. [*.WHT](http://www.ukm.my/seaclid-cordex/files/Rice%20Pilot%20Project%20Workshop/PRESENTATION-PDF/20140922-1430-1445-Weather%20data%20format%20of%20%20DSSAT%20model--%20Attachai.pdf) (analogous as *.MET in APSIM) has been defined as the standardized file format for DSSAT. The **latitude**,**longitude**, **tav** and **amp** parameters are also mandatory for these files.
 
 # Installation
 
@@ -168,7 +188,7 @@ python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "d
 Parallelization is done based on the coordinate variable (whether *latitude* or *longitude*) that has the widest spread (highest data points count). This means, you will rip the benefits of multiple cores when your datasets reference wide ranges of *lat* or *lon* variables. 
 
 
-> **NOTE**: When generating *MET* files *from locally available NetCDF4 files* based on SILO data, you might experience mixed results since SILO provides NetCDF4 files split into `year-variable` and *MET* files require multiple *years* in the same MET file. As of Jun 2020, SILO has refactored all its NetCDF4 files to perform better when extracting spatial data points rather than time-based data points. This effectively means that it is slower to extract data **for all days of the year** from NetCDF4 files, for a single combination of lat/lon, than it is to extract data for all combinations of lat/lon **for a single day**. Since SILO NetCDF4 files are split into `year-variable` units you will always have to extract data from different files when using multiple years. 
+> **NOTE**: When generating *MET* files *from locally available NetCDF4 files* based on SILO data, you might experience mixed results since SILO provides NetCDF4 files split into `year-variable` and *MET* files require multiple *years* in the same MET file. As of Jun 2020, SILO has refactored all its NetCDF4 files to perform better when extracting spatial data points rather than time-based data points. This effectively means that it is slower to extract data **for all days of the year** from NetCDF4 files, for a single combination of lat/lon, than it is to extract data for all combinations of lat/lon **for a single day**. Since SILO NetCDF4 files are split into `year-variable` units you will always have to extract data from different files when using multiple years.
 
 ### EXAMPLE: Generate MET output files (for APSIM) from SILO Cloud API global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
@@ -181,7 +201,6 @@ Here, the `-m` at the end will engage multiple cores to process the tasks. If yo
 # Main References (The following papers implemented this code and can be used as references)
 
 1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2019) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
-2. Ojeda JJ, Perez D, Eyshi Rezaei E (2020) The BestiaPop - A Python package to automatically generate gridded climate data for crop models. APSIM Symposium, Brisbane, Australia.
 
 # Package references
 
