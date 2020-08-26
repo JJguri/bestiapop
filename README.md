@@ -254,7 +254,7 @@ Complete WHT file [here](/sample_data/products/-4101450161.WHT)
 ![image](/sample_data/products/csv.jpg)
 Complete WHT file [here](/sample_data/products/-41.0-145.0.silo.csv)
 
-# Main Reference (The following paper implemented this code and can be used as reference)
+# How do I cite BestiaPop?
 
 1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2019) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
 
