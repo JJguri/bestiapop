@@ -245,10 +245,10 @@ Here you can visualise BestiaPop in action, look the timing to generate a file, 
 
 Below you can find a descriptive table with the BestiaPop performance. We used a AMD Ryzen Threadripper 2990WX 32-Core Processor with 128 GB of physical memory. Two type of runs were performed to generate MET, WHT and CSV files from SILO and NASAPOWER with the parallel computing function (-m) activated and deactivated:
 
-- one lat-lon combination (1 file) across 36 years (1g36y) (columns 4 and 5)
-- 36 lat-lon combinations (36 files) for a single year (columns 6 and 7)
+- one lat-lon combination (1 file) across 36 years (1f36y) (columns 4 and 5)
+- 36 lat-lon combinations (36 files) for a single year (36f1y) (columns 6 and 7)
 
-| Data Source | Parallel Computing | FileType |    Time (s) 1f-36y   | Time/year (s) 1f-36y |    Time (s) 1f-36y   | Time/year (s) 1f-36y |
+| Data Source | Parallel Computing | FileType |   Time (s) 1f-36y   | Time/year (s) 1f-36y |   Time (s) 1f-36y   | Time/year (s) 1f-36y |
 |:------------|:-------------------|:---------|:--------------------:|:--------------------:|:--------------------:|:--------------------:|
 | SILO | deactivated | MET |   35   | 0.97 |   58   | 1.61 |
 |      |             | WHT |   5   | 0.14 |   15   | 0.42 |
