@@ -241,6 +241,28 @@ Here you can visualise BestiaPop in action, look the timing to generate a file, 
 
 **[diego to expand about workload and visualisation of BestiaPop running]**
 
+# BestiaPop performance
+
+Below you can find a descriptive table with the BestiaPop performance. We used a AMD Ryzen Threadripper 2990WX 32-Core Processor with 128 GB of physical memory. Two type of runs were performed to generate MET, WHT and CSV files from SILO and NASAPOWER with the parallel computing function (-m) activated and deactivated:
+
+- one lat-lon combination (1 file) across 36 years (1g36y) (columns 4 and 5)
+- 36 lat-lon combinations (36 files) for a single year (columns 6 and 7)
+
+| Data Source | Parallel Computing | FileType | Time (s) 1f-36y | Time/year (s) 1f-36y | Time (s) 1f-36y | Time/year (s) 1f-36y |
+| ------------|:----------     ---:| ---   --:|-           ----:|--                  -:|-             --:|-                  --:|
+| SILO        | deactivated        | MET      | 35              | 0.97                 | 58              | 1.61                 |
+|             |                    | WHT      | 5               | 0.14                 | 15              | 0.42                 |
+|             |                    | CSV      | 5               | 0.14                 | 14              | 0.39                 |
+|             | activated          | MET      | 75              | 2.08                 | 76              | 2.11                 |
+|             |                    | WHT      | 80              | 2.22                 | 81              | 2.25                 |
+|             |                    | CSV      | 79              | 2.19                 | 80              | 2.22                 |
+| NASAPOWER   | deactivated        | MET      | 12              | 0.33                 |                 |                      |
+|             |                    | WHT      | 10              | 0.28                 |                 |                      |
+|             |                    | CSV      | 10              | 0.28                 |                 |                      |
+|             | activated          | MET      | 64              | 1.78                 |                 |                      |
+|             |                    | WHT      | 66              | 1.83                 |                 |                      |
+|             |                    | CSV      | 68              | 1.89                 |                 |                      |
+
 # BestiaPop products
 
 ## MET file example (APSIM)
