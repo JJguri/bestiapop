@@ -243,10 +243,10 @@ Here you can visualise BestiaPop in action, look the timing to generate a file, 
 
 # BestiaPop performance
 
-Below you can find a descriptive table with some performance indicators for BestiaPop. We used a AMD Ryzen Threadripper 2990WX 32-Core Processor (128 GB of physical memory) to run 20 lat * 20 lon combinations for SILO, i.e. 400 files at 0.05&deg;. The same lat-lon combinations were applied for NASAPOWER, however it generated only 9 files at 0.5&deg; due to the nature of its data resolution. Runs were performed for a 5 year period to generate MET, WHT and CSV files with the parallel computing (PC) function (-m) activated and deactivated. We calculated the the total workload time to generate the files (_Total Time (seconds)_) and the time to generate a single year of daily data (_Time/Year (seconds)_). We also estimated the efficiency of the parallel computing function, i.e. how many times faster was BestiaPop using PC activated (_PC Efficiency (times)_).
+Below you can find a descriptive table with some performance indicators for BestiaPop. We used an AMD Ryzen Threadripper 2990WX 32-Core Processor (128 GB of physical memory) to run 20 lat * 20 lon combinations for SILO, i.e. 400 files at 0.05&deg;. The same lat-lon combinations were applied for NASAPOWER, however it generated only 9 files at 0.5&deg; due to the nature of its data resolution. Runs were performed for a 5 year period to generate MET, WHT and CSV files with the parallel computing (PC) function (-m) activated and deactivated. We calculated the the total workload time to generate all files (_Total Time (seconds)_), a single file (_Time/File (s)_) and the time to generate a single year of daily data (_Time/Year (seconds)_). We also estimated the efficiency of the parallel computing function, i.e. how many times faster was BestiaPop using PC activated (_PC Efficiency (times)_).
 
-| Data Source | Parallel Computing (PC) | File Type | No Files | Years | Total Time (s) | Time/Year (s) | PC Efficiency (times) |
-|:------------|:-----------------------|:----------|:--------------:|:--------------:|:--------------:|:--------------:|:--------------:|
+| Data Source | Parallel Computing (PC) | File Type | No Files | Years | Total Time (s) | Time/File (s) | Time/Year (s) | PC Efficiency (times) |
+|:------------|:------------------------|:----------|:--------------:|:--------------:|:--------------:|:--------------:|:--------------:|
 | SILO      | deactivated      | MET |400|5| 1571    | 3.93  | 0.79 | 10.5 |
 |           |                  | WHT |400|5| 1450    | 3.63  | 0.73 | 9.5  |
 |           |                  | CSV |400|5| 1503    | 3.76  | 0.75 | 9.3  |
