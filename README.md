@@ -191,6 +191,16 @@ python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiatio
 python bestiapop.py -a generate-climate-file -s nasapower -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
 ```
 
+#### Generate CSV output files (for APSIM) using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
+
+> **Note**:
+    * BestiaPop will generate as many CSV files as there are combinations of lat/lon in the coordinate ranges passed in to the application.
+    * BestiaPop will *also* generate a single extra file at the end called `bestiapop-beastly-dataframe.csv` which basically contains **all** the lat/lon combinations for **all years** and **all variables**. The purpose of this file is to make it easier to ingest this data into engines like Pandas, Excel or Elasticsearch, without having to piece together the *individual csv files* generated for each lat/lon combination.
+
+```powershell
+python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
+```
+
 #### Generate MET output files (for APSIM) from local disk for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 1990 to 2010
 
 > **Note**: all the required NetCDF files should be placed in a single directory which is then referenced with the *-i* parameter. The directory should have the following structure:
