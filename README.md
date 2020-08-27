@@ -243,25 +243,22 @@ Here you can visualise BestiaPop in action, look the timing to generate a file, 
 
 # BestiaPop performance
 
-Below you can find a descriptive table with the BestiaPop performance. We used a AMD Ryzen Threadripper 2990WX 32-Core Processor with 128 GB of physical memory. Two type of runs were performed to generate MET, WHT and CSV files from SILO and NASAPOWER with the parallel computing function (-m) activated and deactivated:
+Below you can find a descriptive table with some performance indicators for BestiaPop. We used a AMD Ryzen Threadripper 2990WX 32-Core Processor (128 GB of physical memory) to run 20 lat * 20 lon combinations for SILO, i.e. 400 files at 0.05&deg;. The same lat-lon combinations were applied for NASAPOWER, however it generated only 9 files at 0.5&deg; due to the nature of its data resolution. Runs were performed for a 5 year period to generate MET, WHT and CSV files with the parallel computing (PC) function (-m) activated and deactivated. We calculated the the total workload time to generate the files (_Total Time (seconds)_) and the time to generate a single year of daily data (_Time/Year (seconds)_). We also estimated the efficiency of the parallel computing function, i.e. how many times faster was BestiaPop using PC activated (_PC Efficiency (times)_).
 
-- one lat-lon combination (1 file) across 36 years (1f36y) (columns 4 and 5)
-- 36 lat-lon combinations (36 files) for a single year (36f1y) (columns 6 and 7)
-
-| Data Source | Parallel Computing | FileType |   Time (s) 1f36y   | Time/year (s) 1f36y |   Time (s) 36f1y   | Time/year (s) 36f1y |
-|:------------|:-------------------|:---------|:--------------------:|:--------------------:|:--------------------:|:--------------------:|
-| SILO | deactivated | MET |   35   | 0.97 |   58   | 1.61 |
-|      |             | WHT |   5   | 0.14 |   15   | 0.42 |
-|      |             | CSV |   5   | 0.14 |   14   | 0.39 |
-|      | activated   | MET |   75   | 2.08 |   76   | 2.11 |
-|      |             | WHT |   80   | 2.22 |   81   | 2.25 |
-|      |             | CSV |   79   | 2.19 |   80   | 2.22 |
-| NASAPOWER | deactivated | MET |   12   | 0.33 |        |      |
-|           |             | WHT |   10   | 0.28 |        |      |
-|           |             | CSV |   10   | 0.28 |        |      |
-|           | activated | MET |   64   | 1.78 |        |      |
-|           |           | WHT |   66   | 1.83 |        |      |
-|           |           | CSV |   68   | 1.89 |        |      |
+| Data Source | Parallel Computing (PC) | File Type | No Files | Years | Total Time (s) | Time/Year (s) | PC Efficiency (times) |
+|:------------|:-----------------------|:----------|:--------------:|:--------------:|:--------------:|:--------------:|:--------------:|
+| SILO      | deactivated      | MET |400|5| 1571    | 3.93  | 0.79 | 10.5 |
+|           |                  | WHT |400|5| 1450    | 3.63  | 0.73 | 9.5  |
+|           |                  | CSV |400|5| 1503    | 3.76  | 0.75 | 9.3  |
+|           | activated        | MET |400|5| 149     | 0.37  | 0.07 |      |
+|           |                  | WHT |400|5| 152     | 0.38  | 0.08 |      |
+|           |                  | CSV |400|5| 161     | 0.40  | 0.08 |      |
+| NASAPOWER | deactivated      | MET |9  |5|         |       |      |      |
+|           |                  | WHT |9  |5|         |       |      |      |
+|           |                  | CSV |9  |5|         |       |      |      |
+|           | activated        | MET |9  |5| 71      | 7.89  | 1.58 |      |
+|           |                  | WHT |9  |5| 84      | 9.33  | 1.87 |      |
+|           |                  | CSV |9  |5| 94      | 10.44 | 2.09 |      |
 
 # BestiaPop products
 
