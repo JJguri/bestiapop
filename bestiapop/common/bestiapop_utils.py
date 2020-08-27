@@ -11,8 +11,13 @@ import xarray as xr
 from pathlib import Path
 from tqdm import tqdm
 
-from connectors import (silo_connector, nasapower_connector)
-from producers import output
+# Bad but workable importing solution so that the package can be both imported from Jupyter Notebook and run from commandline
+if "bestiapop" in sys.modules:
+    from bestiapop.connectors import (silo_connector, nasapower_connector)
+    from bestiapop.producers import output
+else:
+    from connectors import (silo_connector, nasapower_connector)
+    from producers import output
 
 class MyUtilityBeast():
     """This class will provide methods to perform generic or shared operations on data
@@ -195,7 +200,7 @@ class MyUtilityBeast():
         if climate_data_source == "silo":
             float_step = 0.05
         elif climate_data_source == "nasapower":
-            float_step = 1  
+            float_step = 0.5
         
         if coordinate_type == "latitude":
             if isinstance(coordinate_range, np.ndarray):
@@ -205,16 +210,15 @@ class MyUtilityBeast():
                 return coordinate_range
             else:
                 if len(coordinate_range) > 1:
-                    if coordinate_range[0] < 0 and coordinate_range[1] < 0:
-                        if coordinate_range[0] > coordinate_range[1]:
-                            # We are clearly dealing with negative numbers
-                            # User has mistakenly swapped the order of numbers
-                            # we need to silently swap them back
-                            first_lat = coordinate_range[1]
-                            last_lat = coordinate_range[0]
-                        else:
-                            first_lat = coordinate_range[0]
-                            last_lat = coordinate_range[1]
+                    if coordinate_range[0] > coordinate_range[1]:
+                        # We are clearly dealing with negative numbers
+                        # User has mistakenly swapped the order of numbers
+                        # we need to silently swap them back
+                        first_lat = coordinate_range[1]
+                        last_lat = coordinate_range[0]
+                    else:
+                        first_lat = coordinate_range[0]
+                        last_lat = coordinate_range[1]
 
                     # Find absolute distance to account for missing values
                     # numpy.arange erratic behaviour with floats: https://numpy.org/doc/stable/reference/generated/numpy.arange.html
