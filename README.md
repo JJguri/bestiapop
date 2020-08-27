@@ -247,12 +247,12 @@ Below you can find a descriptive table with some performance indicators for Best
 
 | Data Source | Parallel Computing (PC) | File Type | No Files | Years | Total Time (s) | Time/File (s) | Time/Year (s) | PC Efficiency (times) |
 |:------------|:------------------------|:----------|:--------------:|:--------------:|:--------------:|:--------------:|:--------------:|:--------------:|
-| SILO      | deactivated      | MET |400|5| 1571    | 3.93  | 0.79 | 10.5 |
-|           |                  | WHT |400|5| 1450    | 3.63  | 0.73 | 9.5  |
-|           |                  | CSV |400|5| 1503    | 3.76  | 0.75 | 9.3  |
-|           | activated        | MET |400|5| 149     | 0.37  | 0.07 |      |
-|           |                  | WHT |400|5| 152     | 0.38  | 0.08 |      |
-|           |                  | CSV |400|5| 161     | 0.40  | 0.08 |      |
+| SILO      | deactivated      | MET |400|5| 1571    | 3.93  | 0.79 |      |
+|           |                  | WHT |400|5| 1450    | 3.63  | 0.73 |      |
+|           |                  | CSV |400|5| 1503    | 3.76  | 0.75 |      |
+|           | activated        | MET |400|5| 149     | 0.37  | 0.07 | 10.5 |
+|           |                  | WHT |400|5| 152     | 0.38  | 0.08 | 9.5  |
+|           |                  | CSV |400|5| 161     | 0.40  | 0.08 | 9.3  |
 | NASAPOWER | deactivated      | MET |9  |5|         |       |      |      |
 |           |                  | WHT |9  |5|         |       |      |      |
 |           |                  | CSV |9  |5|         |       |      |      |
