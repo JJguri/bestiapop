@@ -249,7 +249,7 @@ Below you can find a descriptive table with the BestiaPop performance. We used a
 - 36 lat-lon combinations (36 files) for a single year (columns 6 and 7)
 
 | Data Source | Parallel Computing | FileType | Time (s) 1f-36y | Time/year (s) 1f-36y | Time (s) 1f-36y | Time/year (s) 1f-36y |
-|:------------|:-------------------|:---------|:---------------:|:--------------------:|:---------------:|:--------------------:|
+|:------------|:-------------------|:---------|:--------------------:|:--------------------:|:--------------------:|:--------------------:|
 | SILO | deactivated | MET | 35 | 0.97 | 58 | 1.61 |
 |      |             | WHT | 5 | 0.14 | 15 | 0.42 |
 |      |             | CSV | 5 | 0.14 | 14 | 0.39 |
