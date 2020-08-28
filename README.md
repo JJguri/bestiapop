@@ -11,6 +11,10 @@ Currently, the code downloads data from two different climate databases:
 1. [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/)
 2. [NASA POWER](https://power.larc.nasa.gov/)
 
+## Documentation
+
+Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
+
 ## Authors
 
 ### Core Contributors
