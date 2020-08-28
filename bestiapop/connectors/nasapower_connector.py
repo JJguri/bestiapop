@@ -239,6 +239,10 @@ class NASAPowerClimateDataConnector():
 
         df = pd.DataFrame.from_dict(pandas_dict_of_items)
 
+        # Fixing -99 invalid values from NASAPOWER
+        df[climate_variable] = df[climate_variable].apply(lambda x: np.NaN if x < -98 else x)
+        df[climate_variable] = (df[climate_variable].ffill()+df[climate_variable].bfill())/2
+
         # making the julian day match the expected
         df['days'] += 1
 

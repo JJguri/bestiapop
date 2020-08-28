@@ -198,7 +198,7 @@ python bestiapop.py -a generate-climate-file -s nasapower -y "2015-2016" -c "rad
     * BestiaPop will *also* generate a single extra file at the end called `bestiapop-beastly-dataframe.csv` which basically contains **all** the lat/lon combinations for **all years** and **all variables**. The purpose of this file is to make it easier to ingest this data into engines like Pandas, Excel or Elasticsearch, without having to piece together the *individual csv files* generated for each lat/lon combination.
 
 ```powershell
-python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
+python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot csv
 ```
 
 #### Generate MET output files (for APSIM) from local disk for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 1990 to 2010
