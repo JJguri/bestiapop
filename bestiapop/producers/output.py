@@ -102,7 +102,13 @@ class DATAOUTPUT():
 
                     # We shall output the plain final DataFrame to stdout using tabulate
                     print("\n")
-                    print(tabulate(coordinate_slice_df, headers=coordinate_slice_df.keys(), tablefmt='psql', showindex=False))
+                    print(tabulate(
+                                    coordinate_slice_df,
+                                    headers=coordinate_slice_df.keys(),
+                                    tablefmt='psql',
+                                    numalign='right',
+                                    stralign='right',
+                                    showindex=False))
                     print("\n")
 
         if output_type == "met":
@@ -361,7 +367,13 @@ year day radn maxt mint rain
         del wht_df_2['day']
         # rename columns to match expected values in preparation for "tabulate" and right alignment
         wht_df_2 = wht_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
-        wht_var_data_ascii = tabulate(wht_df_2.set_index('@DATE'), tablefmt='plain', numalign='right', stralign='right', headers=wht_df_2.columns.values)
+        wht_var_data_ascii = tabulate(
+                                    wht_df_2.set_index('@DATE'),
+                                    tablefmt='plain',
+                                    numalign='right',
+                                    stralign='right',
+                                    headers=wht_df_2.columns.values) # Add this for float equalization if required --> floatfmt=['.2f' for x in wht_df_2.columns]
+
         df_output_buffer.write(wht_var_data_ascii)
         # delete df copy
         del wht_df_2
@@ -421,7 +433,7 @@ year day radn maxt mint rain
         wht_header = re.sub(r"^\s\s", "", wht_header)
         wht_header = re.sub(r"\n\s\s", "\n", wht_header) 
 
-        # Get vales to configure WHT file name as per DSSAT convention
+        # Get required values to configure WHT file name as per DSSAT convention
         flat = str(lat).replace(".", "")
         flon = str(lon).replace(".", "")
         fyear_array = wht_dataframe['dssatday'].apply(lambda x: int(str(x)[:2:])).unique()
@@ -435,8 +447,7 @@ year day radn maxt mint rain
                                             lat=lat,
                                             lon=lon,
                                             wht_header=wht_header,
-                                            vardata=wht_df_text_output
-                                        )
+                                            vardata=wht_df_text_output)
         df_output_buffer.close()
 
 

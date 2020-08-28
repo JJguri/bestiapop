@@ -149,7 +149,7 @@ This option might take a *very* long time due to the multiple dependencies that 
 
 BestiaPop has three primary commands that you can pass in with the `-a` option: 
 
-1. **generate-climate-file**: this command will generate an input file for crop modelling software depending on the output type (`-ot`) being `met` or `wht`. When `csv` is selected, a file containing all years in the sequence, with all requested variables, will be produced for each lat/lon combination.
+1. **generate-climate-file**: this command will generate an input file for crop modelling software depending on the output type (`-ot`) being `met` or `wht`. When `csv` or `stdout` is selected, a file containing all years in the sequence, with all requested variables, will be produced for each lat/lon combination.
 2. **download-nc4-file**: this command downloads NetCDF4 files from SILO or NASAPOWER
 3. **convert-nc4**: *currently not implemented*, this command will allow you to convert NetCDF4 files to other formats like `json` or `csv`.
 
@@ -177,6 +177,31 @@ python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "d
 
 ```powershell
 python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
+```
+
+#### Print data directly to screen (stdout) using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for year 2019
+
+```powershell
+python bestiapop.py -a generate-climate-file -s nasapower -y "2019" -c "radiation max_temp min_temp daily_rain" -lat "-55" -lon "-20" -ot stdout
+```
+
+Result:
+
+```
++-------+-------+--------+-------+--------+--------+--------+--------+
+|   lon |   lat |   year |   day |   radn |   maxt |   mint |   rain |
+|-------+-------+--------+-------+--------+--------+--------+--------|
+|   -20 |   -55 |   2019 |     1 |  16.88 |   3.27 |      2 |   1.99 |
+|   -20 |   -55 |   2019 |     2 |   8.88 |   3.61 |   2.11 |   1.02 |
+|   -20 |   -55 |   2019 |     3 |     23 |   2.91 |   2.22 |   0.85 |
+|   -20 |   -55 |   2019 |     4 |   7.64 |   2.22 |    0.7 |  10.42 |
+|   -20 |   -55 |   2019 |     5 |  10.38 |   2.33 |   1.17 |   5.89 |
+...
+|   -20 |   -55 |   2019 |   362 |     14 |    3.4 |   2.68 |   0.66 |
+|   -20 |   -55 |   2019 |   363 |  14.51 |   3.75 |   2.29 |   0.51 |
+|   -20 |   -55 |   2019 |   364 |   8.37 |   3.41 |   2.47 |   1.61 |
+|   -20 |   -55 |   2019 |   365 |  13.57 |    2.3 |   1.67 |   2.35 |
++-------+-------+--------+-------+--------+--------+--------+--------+
 ```
 
 #### Generate WHT output files (for DSSAT) output files using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
