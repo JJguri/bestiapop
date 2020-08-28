@@ -8,7 +8,7 @@ setup(
   author = 'Diego Perez & Jonathan Ojeda',
   author_email = 'darkquasar7@gmail.com',
   url = 'https://github.com/JJguri/bestiapop',
-  download_url = 'https://github.com/JJguri/bestiapop/archive/v_30.tar.gz',
+  download_url = 'https://github.com/JJguri/bestiapop/archive/v3.0.tar.gz',
   keywords = ['silo', 'apsim', 'nasapower', 'dssat', 'met', 'wth', 'crop modelling', 'crops', 'agriculture', 'data science', 'climate', 'weather', 'automation'],
   install_requires=[
             'coloredlogs>=10.0',
