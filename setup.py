@@ -24,9 +24,9 @@ setup(
         ],
   classifiers=[
     'Development Status :: 4 - Beta',      # "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
-    'Intended Audience :: Data Scientists',
+    'Intended Audience :: Science/Research',
     'Topic :: Software Development :: Build Tools',
-    'License :: OSI Approved :: bsd-3-clause',
+    'License :: OSI Approved :: BSD License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
