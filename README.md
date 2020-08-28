@@ -33,6 +33,12 @@ Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
 
 * Drew Holzworth ([helping](https://github.com/APSIMInitiative/ApsimX/issues/5423) integrate BestiaPop into APSIM, kudos!)
 
+# BestiaPop in action!
+
+Here you can visualise BestiaPop in action
+
+![image](/docs/_static/bpop_in_action.gif)
+
 # Process-based (mechanistic) crop models
 
 Process-based crop models are increasingly used in agricultural decision making. In the last two decades, they have intensively contributed to crop management, environmental impact studies, climate risk assessment and climate change adaptation analysis. The number of crop models and model users is increasing and several studies have been intensively focused on model development, i.e. building or improving the science behind the model and multi-model ensembles. [APSIM](https://www.apsim.info/) (Agricultural Production Systems Simulator) and [DSSAT](https://dssat.net/) (Decision Support System for Agrotechnology Transfer) are the two major crop models used by the scientific community worldwide.
@@ -317,14 +323,6 @@ python bestiapop.py -a generate-climate-file -s silo -y "2008-2016" -c "radiatio
 
 Here, the `-m` at the end will engage multiple cores to process the tasks. If you have 8 available cores it will create 8 separate processes to download the data from the cloud and will then use 8 separate processes to generate the output files.
 
-# BestiaPop in action!
-
-Here you can visualise BestiaPop in action, look the timing to generate a file, 0 secs!
-
-![image](/sample_data/products/run.jpg)
-
-**[diego to expand about workload and visualisation of BestiaPop running]**
-
 # BestiaPop performance
 
 Below you can find a descriptive table with some performance indicators for BestiaPop. We used an AMD Ryzen Threadripper 2990WX 32-Core Processor (128 GB of physical memory) to run 20 lat * 20 lon combinations for SILO, i.e. 400 files at 0.05&deg;. The same lat-lon combinations were applied for NASAPOWER, however it generated only 9 files at 0.5&deg; due to the nature of its data resolution. Runs were performed for a 5 year period to generate MET, WTH and CSV files with the parallel computing (PC) function (-m) activated and deactivated. We calculated the the total workload time to generate all files (_Total Time (seconds)_), a single file (_Time/File (s)_) and the time to generate a single year of daily data (_Time/Year (seconds)_). We also estimated the efficiency of the parallel computing function, i.e. how many times faster was BestiaPop using PC activated (_PC Efficiency (times)_).
@@ -355,13 +353,13 @@ Complete MET file [here](/sample_data/products/-41.0-145.0.met)
 
 ## WTH file example (DSSAT)
 
-![image](/sample_data/products/wht.jpg)
-Complete WTH file [here](/sample_data/products/-4101450161.WHT)
+![image](/sample_data/products/wth.jpg)
+Complete WTH file [here](/sample_data/products/-4101450161.WTH)
 
 ## CSV file example
 
 ![image](/sample_data/products/csv.jpg)
-Complete MET file [here](/sample_data/products/-41.0-145.0.silo.csv)
+Complete CSV file [here](/sample_data/products/-41.0-145.0.silo.csv)
 
 # How do I cite BestiaPop?
 
