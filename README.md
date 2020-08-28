@@ -316,7 +316,7 @@ Complete WTH file [here](/sample_data/products/-4101450161.WTH)
 ## CSV file example
 
 ![image](/sample_data/products/csv.jpg)
-Complete WTH file [here](/sample_data/products/-41.0-145.0.silo.csv)
+Complete CSV file [here](/sample_data/products/-41.0-145.0.silo.csv)
 
 # How do I cite BestiaPop?
 
