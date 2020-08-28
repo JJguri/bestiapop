@@ -627,6 +627,22 @@ def main():
   
   # Capturing start time for debugging purposes
   st = datetime.now()
+  
+  # BestiaPop Logo
+  bpop_logo = """
+  
+                    __________                 __  .__      __________              
+                    \______   \ ____   _______/  |_|__|____ \______   \____ ______  
+                    |    |  _// __ \ /  ___/\   __\  \__  \ |     ___/  _ \\____ \ 
+                    |    |   \  ___/ \___ \  |  | |  |/ __ \|    |  (  <_> )  |_> >
+                    |______  /\___  >____  > |__| |__(____  /____|   \____/|   __/ 
+                            \/     \/     \/               \/               |__|   
+                            BESTIAPOP Climate Data Mining Automation Framework 
+"""
+  print("\n")
+  print(bpop_logo)
+  print("\n")
+
   logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
   
   # Grab an instance of the CLIMATEBEAST class

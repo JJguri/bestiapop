@@ -33,6 +33,12 @@ Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
 
 * Drew Holzworth ([helping](https://github.com/APSIMInitiative/ApsimX/issues/5423) integrate BestiaPop into APSIM, kudos!)
 
+# BestiaPop in action!
+
+Here you can visualise BestiaPop in action
+
+![image](/docs/_static/bpop_in_action.gif)
+
 # Process-based (mechanistic) crop models
 
 Process-based crop models are increasingly used in agricultural decision making. In the last two decades, they have intensively contributed to crop management, environmental impact studies, climate risk assessment and climate change adaptation analysis. The number of crop models and model users is increasing and several studies have been intensively focused on model development, i.e. building or improving the science behind the model and multi-model ensembles. [APSIM](https://www.apsim.info/) (Agricultural Production Systems Simulator) and [DSSAT](https://dssat.net/) (Decision Support System for Agrotechnology Transfer) are the two major crop models used by the scientific community worldwide.
@@ -271,14 +277,6 @@ python bestiapop.py -a generate-climate-file -s silo -y "2008-2016" -c "radiatio
 ```
 
 Here, the `-m` at the end will engage multiple cores to process the tasks. If you have 8 available cores it will create 8 separate processes to download the data from the cloud and will then use 8 separate processes to generate the output files.
-
-# BestiaPop in action!
-
-Here you can visualise BestiaPop in action, look the timing to generate a file, 0 secs!
-
-![image](/sample_data/products/run.jpg)
-
-**[diego to expand about workload and visualisation of BestiaPop running]**
 
 # BestiaPop performance
 
