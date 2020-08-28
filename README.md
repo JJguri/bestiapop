@@ -118,11 +118,40 @@ If you request data at station locations the same checks are done; the main diff
 
 Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in Jeffrey et al. 2001 (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
 
-## About NASAPOWER
+## About NASA POWER
 
 NASA's goal in Earth science is to observe, understand, and model the Earth system to discover how it is changing, to better predict change, and to understand the consequences for life on Earth. The Applied Sciences Program, within the Science Mission Directorate (which replaced both the Office of Earth Science and the Office of Space Science), serves NASA and Society by expanding and accelerating the realization of societal and economic benefits from Earth science, information, and technology research and development.
 
 The Prediction Of Worldwide Energy Resources (POWER) project was initiated to improve upon the current renewable energy data set and to create new data sets from new satellite systems. The POWER project targets three user communities: (1) Renewable Energy, (2) Sustainable Buildings, and (3) Agroclimatology. The Agroclimatology Archive is designed to provide web-based access to industry-friendly parameters formatted for input to crop models contained within agricultural DSS.
+
+### What is the spatial resolution of the POWER data?
+
+Bestiapop produces data from NASAPOWER at a 0.5&deg; x 0.5&deg; resolution however the original datasets have different spatial resolution accordingly with the variable.
+
+**Solar**: The data was initially produced on a 1&deg; x 1&deg; global grid and then re-gridded via data replication to a 0.5&deg; x 0.5&deg; latitude and longitude global grid.
+**Meteorology**: The data was initially produced on a 1/2&deg; x 2/3&deg; global grid and then re-gridded via bi-linearly interpolation to a 0.5&deg; x 0.5&deg; latitude and longitude global grid.
+
+### What is the temporal resolution of the POWER data?
+
+Bestiapop produces data at a daily step however the original datasets have different temporal resolution accordingly with the variable.
+
+**Solar**: The data was initially produced on 3-hourly time increments which are averaged to provide daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
+**Meteorology**: The data was initially produced on 1-hourly time increments which are averaged to provided daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
+
+### Climate Variables
+
+One consideration is the name and number of variables in each data source (SILO vs NASAPOWER). They have different number of climate variables and names. Therefore, for a friendly use of BestiaPop with different data sources, we have defined generic variable names for global solar radiation, precipitation, maximum temperature and minimum temperature which are mandatory to create MET and WTH files for crop modelling purposes. Abbreviations of NASAPOWER variables and their corresponding variable names are provided below:
+
+|Original Name|BestiaPop Name|Description|Unit|
+|:--------------:|:---------------:|:------------:|:------------:|
+|ALLSKY_SFC_SW_DWN|radiation|All Sky Insolation Incident on a Horizontal Surface|MJ m<sup>-2<sup>|
+|PRECTOT|daily_rain|Precipitation|mm|
+|T2M_MIN|min_temp|Minimum Temperature at 2 Meters |&deg;C |
+|T2M_MAX|max_temp|Maximum Temperature at 2 Meters |&deg;C |
+
+### Missing values
+
+Solar daily data are typically missing because the satellite observational data are missing and irretrievable. Therefore, in the NASAPOWER data there are missing values for this variable which are represented by `-99`. It is a problem for crop models that works at daily step due to they have defined boundaries for climate variables, so they crashes if read `Nan` values. To solve this problem, BestiaPop automatically calculates the mean value between the previous and the following `NaN`value of the variable and replace the `NaN` with the calculated mean.
 
 # Installation
 
@@ -171,7 +200,7 @@ This command will **only** download the file from the cloud, it won't perform an
 python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 ```
 
-### Generate Climate File
+### Generate Climate Files
 
 #### Generate MET output files (for APSIM) using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
@@ -183,41 +212,10 @@ python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "d
 python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
 ```
 
-#### Print data directly to screen (stdout) using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for year 2019
-
-```powershell
-python bestiapop.py -a generate-climate-file -s nasapower -y "2019" -c "radiation max_temp min_temp daily_rain" -lat "-55" -lon "-20" -ot stdout
-```
-
-Result:
-
-```
-+-------+-------+--------+-------+--------+--------+--------+--------+
-|   lon |   lat |   year |   day |   radn |   maxt |   mint |   rain |
-|-------+-------+--------+-------+--------+--------+--------+--------|
-|   -20 |   -55 |   2019 |     1 |  16.88 |   3.27 |      2 |   1.99 |
-|   -20 |   -55 |   2019 |     2 |   8.88 |   3.61 |   2.11 |   1.02 |
-|   -20 |   -55 |   2019 |     3 |     23 |   2.91 |   2.22 |   0.85 |
-|   -20 |   -55 |   2019 |     4 |   7.64 |   2.22 |    0.7 |  10.42 |
-|   -20 |   -55 |   2019 |     5 |  10.38 |   2.33 |   1.17 |   5.89 |
-...
-|   -20 |   -55 |   2019 |   362 |     14 |    3.4 |   2.68 |   0.66 |
-|   -20 |   -55 |   2019 |   363 |  14.51 |   3.75 |   2.29 |   0.51 |
-|   -20 |   -55 |   2019 |   364 |   8.37 |   3.41 |   2.47 |   1.61 |
-|   -20 |   -55 |   2019 |   365 |  13.57 |    2.3 |   1.67 |   2.35 |
-+-------+-------+--------+-------+--------+--------+--------+--------+
-```
-
 #### Generate WTH output files (for DSSAT) output files using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
 ```powershell
 python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot wth
-```
-
-#### Generate MET output files (for APSIM) using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2003 to 2016
-
-```powershell
-python bestiapop.py -a generate-climate-file -s nasapower -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
 ```
 
 #### Generate CSV output files (for APSIM) using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
@@ -253,6 +251,53 @@ C:\input\folder:
 
 ```powershell
 python bestiapop.py -a generate-climate-file -y "1990-2010" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -i C:\some\input\folder\with\all\netcdf\files\ -o C:\some\output\folder\ -ot met
+```
+
+#### Generate MET output files (for APSIM) using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2003 to 2016
+
+```powershell
+python bestiapop.py -a generate-climate-file -s nasapower -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
+```
+
+#### Generate WTH output files (for DSSAT) output files NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
+
+```powershell
+python bestiapop.py -a generate-climate-file -s nasapower -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot wth
+```
+
+#### Generate CSV output files using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
+
+> **Note**:
+    * BestiaPop will generate as many CSV files as there are combinations of lat/lon in the coordinate ranges passed in to the application.
+    * BestiaPop will *also* generate a single extra file at the end called `bestiapop-beastly-dataframe.csv` which basically contains **all** the lat/lon combinations for **all years** and **all variables**. The purpose of this file is to make it easier to ingest this data into engines like Pandas, Excel or Elasticsearch, without having to piece together the *individual csv files* generated for each lat/lon combination.
+
+```powershell
+python bestiapop.py -a generate-climate-file -s nasapower -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot csv
+```
+
+#### Print data directly to screen (stdout) using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for year 2019
+
+```powershell
+python bestiapop.py -a generate-climate-file -s nasapower -y "2019" -c "radiation max_temp min_temp daily_rain" -lat "-55" -lon "-20" -ot stdout
+```
+
+Result:
+
+```
++-------+-------+--------+-------+--------+--------+--------+--------+
+|   lon |   lat |   year |   day |   radn |   maxt |   mint |   rain |
+|-------+-------+--------+-------+--------+--------+--------+--------|
+|   -20 |   -55 |   2019 |     1 |  16.88 |   3.27 |      2 |   1.99 |
+|   -20 |   -55 |   2019 |     2 |   8.88 |   3.61 |   2.11 |   1.02 |
+|   -20 |   -55 |   2019 |     3 |     23 |   2.91 |   2.22 |   0.85 |
+|   -20 |   -55 |   2019 |     4 |   7.64 |   2.22 |    0.7 |  10.42 |
+|   -20 |   -55 |   2019 |     5 |  10.38 |   2.33 |   1.17 |   5.89 |
+...
+|   -20 |   -55 |   2019 |   362 |     14 |    3.4 |   2.68 |   0.66 |
+|   -20 |   -55 |   2019 |   363 |  14.51 |   3.75 |   2.29 |   0.51 |
+|   -20 |   -55 |   2019 |   364 |   8.37 |   3.41 |   2.47 |   1.61 |
+|   -20 |   -55 |   2019 |   365 |  13.57 |    2.3 |   1.67 |   2.35 |
++-------+-------+--------+-------+--------+--------+--------+--------+
 ```
 
 ## Parallel Computing
