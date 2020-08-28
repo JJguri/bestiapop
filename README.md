@@ -134,15 +134,17 @@ The Prediction Of Worldwide Energy Resources (POWER) project was initiated to im
 
 Bestiapop produces data from NASAPOWER at a 0.5&deg; x 0.5&deg; resolution however the original datasets have different spatial resolution accordingly with the variable.
 
-**Solar**: The data was initially produced on a 1&deg; x 1&deg; global grid and then re-gridded via data replication to a 0.5&deg; x 0.5&deg; latitude and longitude global grid.
-**Meteorology**: The data was initially produced on a 1/2&deg; x 2/3&deg; global grid and then re-gridded via bi-linearly interpolation to a 0.5&deg; x 0.5&deg; latitude and longitude global grid.
+- **Solar**: The data was initially produced on a 1&deg; x 1&deg; global grid and then re-gridded via data replication to a 0.5&deg; x 0.5&deg; latitude and longitude global grid.
+
+- **Meteorology**: The data was initially produced on a 1/2&deg; x 2/3&deg; global grid and then re-gridded via bi-linearly interpolation to a 0.5&deg; x 0.5&deg; latitude and longitude global grid.
 
 ### What is the temporal resolution of the POWER data?
 
 Bestiapop produces data at a daily step however the original datasets have different temporal resolution accordingly with the variable.
 
-**Solar**: The data was initially produced on 3-hourly time increments which are averaged to provide daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
-**Meteorology**: The data was initially produced on 1-hourly time increments which are averaged to provided daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
+- **Solar**: The data was initially produced on 3-hourly time increments which are averaged to provide daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
+
+- **Meteorology**: The data was initially produced on 1-hourly time increments which are averaged to provided daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
 
 ### Climate Variables
 
