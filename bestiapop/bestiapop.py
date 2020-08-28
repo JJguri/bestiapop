@@ -77,7 +77,7 @@ class Arguments():
 
         self.parser.add_argument(
             "-a", "--action",
-            help="The type of operation to want to perform: download-nc4-file (it will only download a particular NetCDF4 file from the cloud to your local disk, the source can be specified with the --data-source parameter), convert-nc4 (it will only convert a local or cloud file from NC4/HDF5 format to the output format specified with --output-type), generate-climate-file (the default action, it will generate a particular climate file like MET (for APSIM) or WHT (for DSSAT) using the parameters passed in as years, climate variable, etc.)",
+            help="The type of operation to want to perform: download-nc4-file (it will only download a particular NetCDF4 file from the cloud to your local disk, the source can be specified with the --data-source parameter), convert-nc4 (it will only convert a local or cloud file from NC4/HDF5 format to the output format specified with --output-type), generate-climate-file (the default action, it will generate a particular climate file like MET (for APSIM) or WTH (for DSSAT) using the parameters passed in as years, climate variable, etc.)",
             type=str,
             choices=["download-nc4-file", "convert-nc4", "generate-climate-file"],
             default="generate-climate-file",
@@ -166,9 +166,9 @@ class Arguments():
 
         self.parser.add_argument(
             "-ot", "--output-type",
-            help="This argument will tell the script whether you want the output file to be in MET (default, for APSIM), WHT (for DSSAT), CSV (not yet implemented) or JSON (not yet implemented) format",
+            help="This argument will tell the script whether you want the output file to be in MET (default, for APSIM), WTH (for DSSAT), CSV (not yet implemented) or JSON (not yet implemented) format",
             type=str,
-            choices=["met", "wht", "csv", "json", "stdout"],
+            choices=["met", "wth", "csv", "json", "stdout"],
             default="met",
             required=False
         )
@@ -205,7 +205,7 @@ class CLIMATEBEAST():
 
         Args:
             logger (str): A pointer to an initialized Argparse logger
-            action (str): the type of action to be performed by BestiaPop. Available choices are: download-nc4-file (it will only download a particular NetCDF4 file from the cloud to your local disk, the source can be specified with the --data-source parameter), convert-nc4 (it will only convert a local or cloud file from NC4/HDF5 format to the output format specified with --output-type), generate-climate-file (the default action, it will generate a particular climate file like MET (for APSIM) or WHT (for DSSAT) using the parameters passed in as years, climate variable, etc.)
+            action (str): the type of action to be performed by BestiaPop. Available choices are: download-nc4-file (it will only download a particular NetCDF4 file from the cloud to your local disk, the source can be specified with the --data-source parameter), convert-nc4 (it will only convert a local or cloud file from NC4/HDF5 format to the output format specified with --output-type), generate-climate-file (the default action, it will generate a particular climate file like MET (for APSIM) or WTH (for DSSAT) using the parameters passed in as years, climate variable, etc.)
             data_source (str): the source database for the climate data: SILO (Australia only) or NASAPOWER (world wide)
             input_path (str): if the NetCDF files to be processed are stored locally, this path will be used to look for all the files required to extract data from the different year, latitude and longitude ranges
             output_path (str): the path where generated output files will be stored
@@ -294,7 +294,7 @@ class CLIMATEBEAST():
 
             if self.output_type == "met":
                 self.logger.info('Action {} not implemented yet'.format(action))
-            if self.output_type == "wht":
+            if self.output_type == "wth":
                 self.logger.info('Action {} not implemented yet'.format(action))
             if self.output_type == "csv":
                 self.logger.info('Action {} not implemented yet'.format(action))
@@ -526,7 +526,7 @@ class CLIMATEBEAST():
         elif action == "convert-nc4":
             if self.output_type == "met":
                 self.logger.info('Action {} not implemented yet'.format(action))
-            if self.output_type == "wht":
+            if self.output_type == "wth":
                 self.logger.info('Action {} not implemented yet'.format(action))
             if self.output_type == "csv":
                 self.logger.info('Action {} not implemented yet'.format(action))

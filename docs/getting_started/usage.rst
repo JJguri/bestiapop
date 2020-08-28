@@ -3,7 +3,7 @@ How to use BestiaPop
 
 BestiaPop has three primary commands that you can pass in with the ``-a`` option: 
 
-1. ``generate-climate-file``: this command will generate an input file for crop modelling software depending on the output type (``-ot``) being ``met`` or ``wht``. When ``csv`` is selected, a file containing all years in the sequence, with all requested variables, will be produced for each lat/lon combination.
+1. ``generate-climate-file``: this command will generate an input file for crop modelling software depending on the output type (``-ot``) being ``met`` or ``wth``. When ``csv`` is selected, a file containing all years in the sequence, with all requested variables, will be produced for each lat/lon combination.
 2. ``download-nc4-file``: this command downloads NetCDF4 files from SILO or NASAPOWER
 3. ``convert-nc4``: *currently not implemented*, this command will allow you to convert NetCDF4 files to other formats like ``json`` or ``csv``.
 
@@ -25,12 +25,12 @@ Generate MET output files using SILO cloud API, for Radiation, Min Temperature, 
 
    python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
 
-Generate WHT (for DSSAT) output files using SILO cloud API, for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
+Generate WTH (for DSSAT) output files using SILO cloud API, for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2015 to 2016
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: batch
 
-   python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot wht
+   python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot wth
 
 Generate MET output files using NASAPOWER cloud API, for Radiation, Min Temperature, Max Temperature and Daily Rain for years 2003 to 2016
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

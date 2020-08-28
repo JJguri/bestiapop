@@ -148,7 +148,7 @@ class DATAOUTPUT():
             except KeyError as e:
                 self.logger.error("Could not find all required climate variables to generate MET: {}".format(str(e)))
 
-        if output_type == "wht":
+        if output_type == "wth":
             # Rename variables
             # Check if final df is empty, if so, then return and do not proceed with the rest of the file
             if final_daily_df.empty == True:
@@ -168,7 +168,7 @@ class DATAOUTPUT():
                 # Add DSSAT julian day values as first column
                 final_daily_df.insert(0, 'dssatday', dssat_year_series + dssat_julian_day_series)
                 
-                self.logger.info("Proceeding to the generation of WHT files")
+                self.logger.info("Proceeding to the generation of WTH files")
 
                 for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
                     
@@ -185,13 +185,13 @@ class DATAOUTPUT():
                         del coordinate_slice_df['lat']
                         del coordinate_slice_df['lon']
 
-                        self.generate_wht(outputdir, coordinate_slice_df, lat, lon)
+                        self.generate_wth(outputdir, coordinate_slice_df, lat, lon)
 
                         # Delete unused df
                         del coordinate_slice_df
 
             except KeyError as e:
-                self.logger.error("Could not find all required climate variables to generate WHT file: {}".format(str(e)))
+                self.logger.error("Could not find all required climate variables to generate WTH file: {}".format(str(e)))
 
         if output_type == "csv":
             # TODO: Clean this up...
@@ -332,73 +332,73 @@ year day radn maxt mint rain
             self.logger.info('Writting MET file {}'.format(full_output_path))
             f.write(in_memory_met)
 
-    def generate_wht(self, outputdir, wht_dataframe, lat, lon):
-        """Generate WHT File
+    def generate_wth(self, outputdir, wth_dataframe, lat, lon):
+        """Generate WTH File
 
         Args:
-            outputdir (str): the folder where the generated WHT files will be stored
-            wht_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to WHT file
-            lat (float): the latitude for which this WHT file is being generated
-            lon (float): the longitude for which this WHT file is being generated
+            outputdir (str): the folder where the generated WTH files will be stored
+            wth_dataframe (pandas.core.frame.DataFrame): the pandas dataframe slice to convert to WTH file
+            lat (float): the latitude for which this WTH file is being generated
+            lon (float): the longitude for which this WTH file is being generated
         """
 
-        # Creating final WHT file
+        # Creating final WTH file
 
-        # Setting up Jinja2 Template for final WHT file if required
+        # Setting up Jinja2 Template for final WTH file if required
         # Text alignment looks weird here but it must be left this way for proper output
-        wht_file_j2_template = '''*WEATHER DATA : {{ lat }}-{{ lon }}
+        wth_file_j2_template = '''*WEATHER DATA : {{ lat }}-{{ lon }}
 
-{{ wht_header }}
+{{ wth_header }}
 {{ vardata }}
         '''
 
-        j2_template = Template(wht_file_j2_template)
+        j2_template = Template(wth_file_j2_template)
 
         # Initialize a string buffer to receive the output of df.to_csv in-memory
         df_output_buffer = io.StringIO()
 
         # Save data to a buffer (same as with a regular file but in-memory):
-        # Make a copy of the original dataframe so as to remove unnecessary values for the WHT file
+        # Make a copy of the original dataframe so as to remove unnecessary values for the WTH file
         # but to leave the values required to calculate TAV and AMP
-        wht_df_2 = wht_dataframe.copy()
+        wth_df_2 = wth_dataframe.copy()
         # remove year but first capture it for output file name
-        del wht_df_2['year']
+        del wth_df_2['year']
         # remove day
-        del wht_df_2['day']
+        del wth_df_2['day']
         # rename columns to match expected values in preparation for "tabulate" and right alignment
-        wht_df_2 = wht_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
-        wht_var_data_ascii = tabulate(
-                                    wht_df_2.set_index('@DATE'),
+        wth_df_2 = wth_df_2.rename(columns={'dssatday':'@DATE', 'rain':'RAIN', 'mint':'TMIN', 'maxt':'TMAX', 'radn':'SRAD'})
+        wth_var_data_ascii = tabulate(
+                                    wth_df_2.set_index('@DATE'),
                                     tablefmt='plain',
                                     numalign='right',
                                     stralign='right',
-                                    headers=wht_df_2.columns.values) # Add this for float equalization if required --> floatfmt=['.2f' for x in wht_df_2.columns]
+                                    headers=wth_df_2.columns.values) # Add this for float equalization if required --> floatfmt=['.2f' for x in wth_df_2.columns]
 
-        df_output_buffer.write(wht_var_data_ascii)
+        df_output_buffer.write(wth_var_data_ascii)
         # delete df copy
-        del wht_df_2
+        del wth_df_2
 
         # Get values from buffer
         # Go back to position 0 to read from buffer
         # Replace get rid of carriage return or it will add an extra new line between lines
         df_output_buffer.seek(0)
-        wht_df_text_output = df_output_buffer.getvalue()
+        wth_df_text_output = df_output_buffer.getvalue()
         # Get rid of Tabulate's annoying double-space padding
-        wht_df_text_output = re.sub(r'^\s\s', '', wht_df_text_output)
-        wht_df_text_output = re.sub(r'\n\s\s', '\n', wht_df_text_output)        
+        wth_df_text_output = re.sub(r'^\s\s', '', wth_df_text_output)
+        wth_df_text_output = re.sub(r'\n\s\s', '\n', wth_df_text_output)        
         
         # Calculate here the tav, amp values
 
         # Calculate amp
         # Get the months as a column
-        wht_dataframe.loc[:, 'cte'] = 1997364
-        wht_dataframe.loc[:, 'day2'] = wht_dataframe['day'] + wht_dataframe['cte']
-        wht_dataframe.loc[:, 'date'] = (pd.to_datetime((wht_dataframe.day2 // 1000)) + pd.to_timedelta(wht_dataframe.day2 % 1000, unit='D'))
-        wht_dataframe.loc[:, 'month'] = wht_dataframe.date.dt.month
-        month=wht_dataframe.loc[:, 'month']
+        wth_dataframe.loc[:, 'cte'] = 1997364
+        wth_dataframe.loc[:, 'day2'] = wth_dataframe['day'] + wth_dataframe['cte']
+        wth_dataframe.loc[:, 'date'] = (pd.to_datetime((wth_dataframe.day2 // 1000)) + pd.to_timedelta(wth_dataframe.day2 % 1000, unit='D'))
+        wth_dataframe.loc[:, 'month'] = wth_dataframe.date.dt.month
+        month=wth_dataframe.loc[:, 'month']
 
-        wht_dataframe.loc[:, 'tmean'] = wht_dataframe[['maxt', 'mint']].mean(axis=1)
-        tmeanbymonth = wht_dataframe.groupby(month)[["tmean"]].mean()
+        wth_dataframe.loc[:, 'tmean'] = wth_dataframe[['maxt', 'mint']].mean(axis=1)
+        tmeanbymonth = wth_dataframe.groupby(month)[["tmean"]].mean()
         maxmaxtbymonth = tmeanbymonth['tmean'].max()
         minmaxtbymonth = tmeanbymonth['tmean'].min()
         amp = np.round((maxmaxtbymonth-minmaxtbymonth), decimals=1)
@@ -406,53 +406,53 @@ year day radn maxt mint rain
         # Calculate tav
         tav = tmeanbymonth.mean().tmean.round(decimals=1)
 
-        # Create WHT Header values
+        # Create WTH Header values
         # We don't have elevation?
-        elev = -99.0
-        station_hex_name = hex(14590)[2:]
-        wht_header_dict = {
-            '@ INSI':  [station_hex_name],
+        elev = -99
+
+        wth_header_dict = {
+            '@ INSI':  'BPOP',
             'LAT':     [lat],
             'LONG':     [lon],
             'ELEV':     [elev],
             'TAV':     [tav],
             'AMP':     [amp],
-            'REFHT':     [-99.0],
-            'WNDHT':     [-99.0],
+            'REFHT':     [-99],
+            'WNDHT':     [-99],
         }
-        wht_dssat_header = pd.DataFrame(wht_header_dict)
-        wht_header = tabulate(
-            wht_dssat_header.set_index('@ INSI'),
+        wth_dssat_header = pd.DataFrame(wth_header_dict)
+        wth_header = tabulate(
+            wth_dssat_header.set_index('@ INSI'),
             tablefmt='plain',
             numalign='right',
             stralign='right',
-            headers=wht_dssat_header.columns.values,
-            floatfmt=('', '.3f', '.3f', '.1f', '.1f', '.1f', '.1f', '.1f')
+            headers=wth_dssat_header.columns.values,
+            floatfmt=('', '.2f', '.2f', '.1f', '.1f', '.1f', '.1f', '.1f')
         )
         # Get rid of Tabulate's annoying double-space padding
-        wht_header = re.sub(r"^\s\s", "", wht_header)
-        wht_header = re.sub(r"\n\s\s", "\n", wht_header) 
+        wth_header = re.sub(r"^\s\s", "", wth_header)
+        wth_header = re.sub(r"\n\s\s", "\n", wth_header) 
 
-        # Get required values to configure WHT file name as per DSSAT convention
+        # Get required values to configure WTH file name as per DSSAT convention
         flat = str(lat).replace(".", "")
         flon = str(lon).replace(".", "")
-        fyear_array = wht_dataframe['dssatday'].apply(lambda x: int(str(x)[:2:])).unique()
+        fyear_array = wth_dataframe['dssatday'].apply(lambda x: int(str(x)[:2:])).unique()
         fyear = fyear_array[0]
         fyear_len = len(fyear_array)
 
         # Delete df
-        del wht_dataframe
+        del wth_dataframe
 
         in_memory_dssat = j2_template.render(
                                             lat=lat,
                                             lon=lon,
-                                            wht_header=wht_header,
-                                            vardata=wht_df_text_output)
+                                            wth_header=wth_header,
+                                            vardata=wth_df_text_output)
         df_output_buffer.close()
 
 
 
-        full_output_path = outputdir/'{}{}{}{}.WHT'.format(flat, flon, fyear, fyear_len)
+        full_output_path = outputdir/'{}{}{}{}.WTH'.format(flat, flon, fyear, fyear_len)
         with open(full_output_path, 'w+') as f:
-            self.logger.info('Writting WHT file {}'.format(full_output_path))
+            self.logger.info('Writting WTH file {}'.format(full_output_path))
             f.write(in_memory_dssat)

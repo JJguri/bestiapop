@@ -2,9 +2,9 @@
 
 [![Documentation Status](https://readthedocs.org/projects/bestiapop/badge/?version=latest)](https://bestiapop.readthedocs.io/en/latest/?badge=latest&style=plastic)
 
-Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. However, *Crop Models* expects input data to be encapsulated in custom file formats (`MET`, `WHT`, etc.) which don't conform to a common standard and require various customizations, depending on the prediction engine that generates crop models. Moreover, source data providers like [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/) or [NASA POWER](https://power.larc.nasa.gov/) are usually neutral in the type of data output files they provide as part of their API services which leads to a gap between source *raw* data and *processed* data required by crop modelling suites to develop their models. We developed **BestiaPop** (a spanish word that translates to *pop beast*), a Python package which allows model users to automatically download SILO's (Scientific Information for Land Owners) or NASAPOWER gridded climate data and convert this data to files that can be ingested by *Crop Models* like APSIM or DSSAT.
+Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. However, *Crop Models* expects input data to be encapsulated in custom file formats (`MET`, `WTH`, etc.) which don't conform to a common standard and require various customizations, depending on the prediction engine that generates crop models. Moreover, source data providers like [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/) or [NASA POWER](https://power.larc.nasa.gov/) are usually neutral in the type of data output files they provide as part of their API services which leads to a gap between source *raw* data and *processed* data required by crop modelling suites to develop their models. We developed **BestiaPop** (a spanish word that translates to *pop beast*), a Python package which allows model users to automatically download SILO's (Scientific Information for Land Owners) or NASAPOWER gridded climate data and convert this data to files that can be ingested by *Crop Models* like APSIM or DSSAT.
 
-The package offers the possibility to select a range of grids (5 km × 5 km resolution) and years producing various types of output files: CSV, MET (for APSIM), WHT (for DSSAT) and soon JSON (which will become part of BestiaPop's API in the future).
+The package offers the possibility to select a range of grids (5 km × 5 km resolution) and years producing various types of output files: CSV, MET (for APSIM), WTH (for DSSAT) and soon JSON (which will become part of BestiaPop's API in the future).
 
 Currently, the code downloads data from two different climate databases:
 
@@ -81,9 +81,9 @@ DSSAT and its crop simulation models have been used for a wide range of applicat
 
 The crop models require daily weather data, soil surface and profile information, and detailed crop management as input. Crop genetic information is defined in a crop species file that is provided by DSSAT and cultivar or variety information that should be provided by the user. Simulations are initiated either at planting or prior to planting through the simulation of a bare fallow period. These simulations are conducted at a daily step or in some cases, at an hourly time step depending on the process and the crop model. At the end of each day, the plant and soil water, nitrogen, phosphorus, and carbon balances are updated, as well as the crop’s vegetative and reproductive development stage.
 
-### What is a WHT File
+### What is a WTH File
 
-The three key variables in a DSSAT weather file are precipitation, minimum and maximum temperature and solar radiation. [*.WHT](http://www.ukm.my/seaclid-cordex/files/Rice%20Pilot%20Project%20Workshop/PRESENTATION-PDF/20140922-1430-1445-Weather%20data%20format%20of%20%20DSSAT%20model--%20Attachai.pdf) (analogous as *.MET in APSIM) has been defined as the standardized file format for DSSAT. The **latitude**,**longitude**, **tav** and **amp** parameters are also mandatory for these files.
+The three key variables in a DSSAT weather file are precipitation, minimum and maximum temperature and solar radiation. [*.WTH](http://www.ukm.my/seaclid-cordex/files/Rice%20Pilot%20Project%20Workshop/PRESENTATION-PDF/20140922-1430-1445-Weather%20data%20format%20of%20%20DSSAT%20model--%20Attachai.pdf) (analogous as *.MET in APSIM) has been defined as the standardized file format for DSSAT. The **latitude**,**longitude**, **tav** and **amp** parameters are also mandatory for these files.
 
 # Climate Data Sources
 
@@ -153,7 +153,7 @@ This option might take a *very* long time due to the multiple dependencies that 
 
 BestiaPop has three primary commands that you can pass in with the `-a` option: 
 
-1. **generate-climate-file**: this command will generate an input file for crop modelling software depending on the output type (`-ot`) being `met` or `wht`. When `csv` or `stdout` is selected, a file containing all years in the sequence, with all requested variables, will be produced for each lat/lon combination.
+1. **generate-climate-file**: this command will generate an input file for crop modelling software depending on the output type (`-ot`) being `met` or `wth`. When `csv` or `stdout` is selected, a file containing all years in the sequence, with all requested variables, will be produced for each lat/lon combination.
 2. **download-nc4-file**: this command downloads NetCDF4 files from SILO or NASAPOWER
 3. **convert-nc4**: *currently not implemented*, this command will allow you to convert NetCDF4 files to other formats like `json` or `csv`.
 
@@ -208,10 +208,10 @@ Result:
 +-------+-------+--------+-------+--------+--------+--------+--------+
 ```
 
-#### Generate WHT output files (for DSSAT) output files using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
+#### Generate WTH output files (for DSSAT) output files using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
 ```powershell
-python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot wht
+python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot wth
 ```
 
 #### Generate MET output files (for APSIM) using NASAPOWER cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2003 to 2016
@@ -282,23 +282,23 @@ Here you can visualise BestiaPop in action, look the timing to generate a file, 
 
 # BestiaPop performance
 
-Below you can find a descriptive table with some performance indicators for BestiaPop. We used an AMD Ryzen Threadripper 2990WX 32-Core Processor (128 GB of physical memory) to run 20 lat * 20 lon combinations for SILO, i.e. 400 files at 0.05&deg;. The same lat-lon combinations were applied for NASAPOWER, however it generated only 9 files at 0.5&deg; due to the nature of its data resolution. Runs were performed for a 5 year period to generate MET, WHT and CSV files with the parallel computing (PC) function (-m) activated and deactivated. We calculated the the total workload time to generate all files (_Total Time (seconds)_), a single file (_Time/File (s)_) and the time to generate a single year of daily data (_Time/Year (seconds)_). We also estimated the efficiency of the parallel computing function, i.e. how many times faster was BestiaPop using PC activated (_PC Efficiency (times)_).
+Below you can find a descriptive table with some performance indicators for BestiaPop. We used an AMD Ryzen Threadripper 2990WX 32-Core Processor (128 GB of physical memory) to run 20 lat * 20 lon combinations for SILO, i.e. 400 files at 0.05&deg;. The same lat-lon combinations were applied for NASAPOWER, however it generated only 9 files at 0.5&deg; due to the nature of its data resolution. Runs were performed for a 5 year period to generate MET, WTH and CSV files with the parallel computing (PC) function (-m) activated and deactivated. We calculated the the total workload time to generate all files (_Total Time (seconds)_), a single file (_Time/File (s)_) and the time to generate a single year of daily data (_Time/Year (seconds)_). We also estimated the efficiency of the parallel computing function, i.e. how many times faster was BestiaPop using PC activated (_PC Efficiency (times)_).
 
 > **NOTE**: When the amount of lat-lon combinations is reduced (e.g. 9 files), the benefits of multiprocessing are not visualised. However, when the amount of lat-lon combinations are increased (e.g. 400 files), the use of the `-m` function is recommended due to its increase considerably the time efficiency.
 
 | Data Source | Parallel Computing (PC) | File Type | Number of Files | Years | Total Time (s) | Time/File (s) | Time/Year (s) | PC Efficiency (times) |
 |:------------|:------------------------|:----------|:--------------:|:--------------:|:--------------:|:--------------:|:--------------:|:--------------:|
 | SILO      | deactivated      | MET |400|5| 1571    | 3.93  | 0.79 |      |
-|           |                  | WHT |400|5| 1450    | 3.63  | 0.73 |      |
+|           |                  | WTH |400|5| 1450    | 3.63  | 0.73 |      |
 |           |                  | CSV |400|5| 1503    | 3.76  | 0.75 |      |
 |           | activated        | MET |400|5| 149     | 0.37  | 0.07 | 10.5 |
-|           |                  | WHT |400|5| 152     | 0.38  | 0.08 | 9.5  |
+|           |                  | WTH |400|5| 152     | 0.38  | 0.08 | 9.5  |
 |           |                  | CSV |400|5| 161     | 0.40  | 0.08 | 9.3  |
 | NASAPOWER | deactivated      | MET |9  |5| 41      | 4.56  | 0.91 |      |
-|           |                  | WHT |9  |5| 38      | 4.22  | 0.84 |      |
+|           |                  | WTH |9  |5| 38      | 4.22  | 0.84 |      |
 |           |                  | CSV |9  |5| 41      | 4.56  | 0.91 |      |
 |           | activated        | MET |9  |5| 71      | 7.89  | 1.58 | 0.6  |
-|           |                  | WHT |9  |5| 84      | 9.33  | 1.87 | 0.5  |
+|           |                  | WTH |9  |5| 84      | 9.33  | 1.87 | 0.5  |
 |           |                  | CSV |9  |5| 94      | 10.44 | 2.09 | 0.4  |
 
 # BestiaPop products
@@ -308,15 +308,15 @@ Below you can find a descriptive table with some performance indicators for Best
 ![image](/sample_data/products/met.jpg)
 Complete MET file [here](/sample_data/products/-41.0-145.0.met) 
 
-## WHT file example (DSSAT)
+## WTH file example (DSSAT)
 
-![image](/sample_data/products/wht.jpg)
-Complete WHT file [here](/sample_data/products/-4101450161.WHT)
+![image](/sample_data/products/wth.jpg)
+Complete WTH file [here](/sample_data/products/-4101450161.WTH)
 
 ## CSV file example
 
 ![image](/sample_data/products/csv.jpg)
-Complete WHT file [here](/sample_data/products/-41.0-145.0.silo.csv)
+Complete WTH file [here](/sample_data/products/-41.0-145.0.silo.csv)
 
 # How do I cite BestiaPop?
 
