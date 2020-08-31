@@ -163,24 +163,38 @@ Solar daily data are typically missing because the satellite observational data 
 
 # Installation
 
+There are two ways to install BestiaPop
+
+1. With pip
+2. Cloning repo
+
+## 1. Install using PIP
+
+1. `pip install bestiapop` --> This will install all required packages that BestiaPop needs to run as well
+2. **Done!**, to use, sipmply type `python -m bestiapop [args]` :)
+
+> **NOTE**: We recomend you install BestiaPop in an isolated environment created with *Anaconda* or *VirtualEnv*. If using *Anaconda* simply do `conda create -y --name my_data_env python=3.7`
+
+## 2. Install Cloning BestiaPop Repo
+
 1. Clone this repo
 2. Install required packages.
 
-## Using pip
+### Using pip
 
 1. Change directory to the repo folder
 2. `pip install -r requirements.txt`
 
-## Using Anaconda
+### Using Anaconda
 
-### In you Base Environment
+#### In you Base Environment
 
 This option might take a *very* long time due to the multiple dependencies that Anaconda might have to solve on your default **base environment**. Preferably, install using the next method which creates a custom environment.
 
 1. Open your anaconda prompt for the *base* environment (default)
 2. `conda install -y -c conda-forge --file requirements.txt`
 
-### Create Custom Environment
+#### Create Custom Environment
 
 1. `conda create -y --name bestiapop python==3.7`
 2. `conda install --name bestiapop -y -c conda-forge --file requirements.txt`
@@ -195,6 +209,8 @@ BestiaPop has three primary commands that you can pass in with the `-a` option:
 3. **convert-nc4**: *currently not implemented*, this command will allow you to convert NetCDF4 files to other formats like `json` or `csv`.
 
 ## Examples
+
+> **NOTE**: if you installed BestiaPop using `pip`, then instead of `python bestiapop.py` you will have to use `python -m bestiapop`.
 
 ### Download NetCDF4 Files
 
