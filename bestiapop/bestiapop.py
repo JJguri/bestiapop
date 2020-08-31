@@ -595,77 +595,81 @@ class CLIMATEBEAST():
                 output_type=self.output_type
             )
 
-def main():
-  # Setup logging
-  # We need to pass the "logger" to any Classes or Modules that may use it 
-  # in our script
-  try:
-    import coloredlogs
-    logger = logging.getLogger('POPBEAST')
-    coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
+class _main:
 
-  except ModuleNotFoundError:
-    logger = logging.getLogger('POPBEAST')
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.DEBUG)
-    logger.addHandler(console_handler)
-    logger.setLevel(logging.INFO)
+    def main():
+        # Setup logging
+        # We need to pass the "logger" to any Classes or Modules that may use it 
+        # in our script
+        try:
+            import coloredlogs
+            logger = logging.getLogger('POPBEAST')
+            coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
 
-  # Instantiating the arguments class
-  args = Arguments(sys.argv)
-  pargs = args.get_args()
+        except ModuleNotFoundError:
+            logger = logging.getLogger('POPBEAST')
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(formatter)
+            console_handler.setLevel(logging.DEBUG)
+            logger.addHandler(console_handler)
+            logger.setLevel(logging.INFO)
 
-  # Pre-process the Latitude and Longitude argument
-  if pargs.__contains__("latitude_file"):
-      if pargs.latitude_file != None:
-        pargs.latitude_range = pargs.latitude_file
-  if pargs.__contains__("longitude_file"):
-      if pargs.longitude_file != None:
-        pargs.longitude_range = pargs.longitude_file
-  
-  # Capturing start time for debugging purposes
-  st = datetime.now()
+        # Instantiating the arguments class
+        args = Arguments(sys.argv)
+        pargs = args.get_args()
 
-  # BestiaPop Logo
-  bpop_logo = """
-  
-                    __________                 __  .__      __________              
-                    \______   \ ____   _______/  |_|__|____ \______   \____ ______  
-                    |    |  _// __ \ /  ___/\   __\  \__  \ |     ___/  _ \\____ \ 
-                    |    |   \  ___/ \___ \  |  | |  |/ __ \|    |  (  <_> )  |_> >
-                    |______  /\___  >____  > |__| |__(____  /____|   \____/|   __/ 
-                            \/     \/     \/               \/               |__|   
-                            BESTIAPOP Climate Data Mining Automation Framework 
-"""
+        # Pre-process the Latitude and Longitude argument
+        if pargs.__contains__("latitude_file"):
+            if pargs.latitude_file != None:
+                pargs.latitude_range = pargs.latitude_file
+        if pargs.__contains__("longitude_file"):
+            if pargs.longitude_file != None:
+                pargs.longitude_range = pargs.longitude_file
+        
+        # Capturing start time for debugging purposes
+        st = datetime.now()
 
-  logger.info(bpop_logo)
-  logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
-  
-  # Grab an instance of the CLIMATEBEAST class
-  myclimatebeast = CLIMATEBEAST(logger, pargs.action, pargs.data_source, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing)
-  # Start to process the records
-  if pargs.multiprocessing == True:
-    logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
-    myclimatebeast.process_parallel_records(pargs.action)
-  else:
-    myclimatebeast.process_records(pargs.action)
-    
-  # Capturing end time for debugging purposes
-  et = datetime.now()
-  
-  days = (et-st).days
-  hours, remainder = divmod((et-st).seconds, 3600)
-  minutes, seconds = divmod(remainder, 60)
+        # BestiaPop Logo
+        bpop_logo = """
+        
+                            __________                 __  .__      __________              
+                            \______   \ ____   _______/  |_|__|____ \______   \____ ______  
+                            |    |  _// __ \ /  ___/\   __\  \__  \ |     ___/  _ \\____ \ 
+                            |    |   \  ___/ \___ \  |  | |  |/ __ \|    |  (  <_> )  |_> >
+                            |______  /\___  >____  > |__| |__(____  /____|   \____/|   __/ 
+                                    \/     \/     \/               \/               |__|   
+                                    BESTIAPOP Climate Data Mining Automation Framework 
+        """
 
-  logger.info("Finished this unit of work")
-  logger.info('Workload took: \x1b[47m \x1b[32m{} days / {} hours / {} minutes / {} seconds \x1b[0m \x1b[39m'.format(days,hours,minutes,seconds))
+        logger.info(bpop_logo)
+        logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
+        
+        # Grab an instance of the CLIMATEBEAST class
+        myclimatebeast = CLIMATEBEAST(logger, pargs.action, pargs.data_source, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing)
+        # Start to process the records
+        if pargs.multiprocessing == True:
+            logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
+            myclimatebeast.process_parallel_records(pargs.action)
+        else:
+            myclimatebeast.process_records(pargs.action)
+            
+        # Capturing end time for debugging purposes
+        et = datetime.now()
+        
+        days = (et-st).days
+        hours, remainder = divmod((et-st).seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        logger.info("Finished this unit of work")
+        logger.info('Workload took: \x1b[47m \x1b[32m{} days / {} hours / {} minutes / {} seconds \x1b[0m \x1b[39m'.format(days,hours,minutes,seconds))
 
 if __name__ == '__main__':
     try:
-        main()
+        print("mierda")
         sys.exit()
+        _main.main()
+        
     
     except KeyboardInterrupt:
         print("\n" + "BestiaPop amazing work has been interrupted by a mortal. Returning to the depths of the earth." + "\n\n")

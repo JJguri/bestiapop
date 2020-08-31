@@ -11,6 +11,7 @@ import sys
 sys.path.append("bestiapop")
 
 import bestiapop
+from .bestiapop import _main
 from . import common
 from . import connectors
 from . import producers

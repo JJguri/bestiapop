@@ -6,7 +6,6 @@ from distutils.core import setup
 if '' not in sys.path:
     sys.path.insert(0, '')
 
-
 # *** Distutils setup and metadata ***
 
 # Development Status "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
@@ -52,7 +51,7 @@ _PACKAGES = [
     'bestiapop.producers'
 ]
 
-_VERSION = '3.0'
+_VERSION = '3.0.1'
 
 _KEYWORDS = [
     'silo',
