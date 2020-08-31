@@ -93,7 +93,7 @@ setup(
   author = 'Diego Perez & Jonathan Ojeda',
   author_email = 'darkquasar7@gmail.com',
   url = 'https://bestiapop.readthedocs.io/en/latest/',
-  download_url = 'https://github.com/JJguri/bestiapop/archive/v3.0.tar.gz',
+  download_url = 'https://github.com/JJguri/bestiapop/archive/v{}.tar.gz'.format(_VERSION),
   keywords = _KEYWORDS,
   install_requires = _INSTALLREQUIRES,
   python_requires = '>=3.6',
