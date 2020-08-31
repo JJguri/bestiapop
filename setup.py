@@ -50,7 +50,7 @@ _PACKAGES = [
     'bestiapop.producers'
 ]
 
-_VERSION = '3.0.3'
+_VERSION = '3.0.4'
 
 _KEYWORDS = [
     'silo',
