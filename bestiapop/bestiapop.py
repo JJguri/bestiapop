@@ -666,8 +666,6 @@ class _main:
 
 if __name__ == '__main__':
     try:
-        print("mierda")
-        sys.exit()
         _main.main()
         
     
