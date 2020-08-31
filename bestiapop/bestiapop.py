@@ -3,7 +3,7 @@
 '''
     NAME: BESTIAPOP (POPBEAST) ("My heroe es, la gran bestia pop!", thanks Redonditos de Ricota)
     DESCRIPTION: A python package to automate the extraction and processing of climate data for crop modelling.
-    VERSION: 3.0
+    MAJOR/MINOR VERSION: 3.0
 
     DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
     DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
@@ -56,14 +56,23 @@ import time
 import warnings
 import xarray as xr
 
-from . connectors import (silo_connector, nasapower_connector)
-from common import bestiapop_utils
-from producers import output
+# Ugly but workable importing solution so that the package can be both 
+# imported as a package, run from commandline with `python -m bestiapop`
+# or from the source directory as `python bestiapop.py`
+if "bestiapop" in sys.modules:
+    from . connectors import (silo_connector, nasapower_connector)
+    from . common import bestiapop_utils
+    from . producers import output
+else:
+    from connectors import (silo_connector, nasapower_connector)
+    from common import bestiapop_utils
+    from producers import output
 
 from datetime import datetime as datetime
 from numpy import array
 from pathlib import Path
 
+# Ignore Warnings
 warnings.filterwarnings("ignore")
 
 class Arguments():

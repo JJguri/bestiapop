@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 __author__ = "Diego Perez <darkquasar7@gmail.com> & Jonathan Ojeda <jonathan.ojeda>"
-__license__ = "???"
+__license__ = "BSD-3-Clause"
 __stable__ = True
 __version__ = "3.0"
 
@@ -15,6 +15,3 @@ from .bestiapop import _main
 from . import common
 from . import connectors
 from . import producers
-
-#__version__ = get_versions()["version"]
-#del get_versions

@@ -11,7 +11,9 @@ import xarray as xr
 from pathlib import Path
 from tqdm import tqdm
 
-# Bad but workable importing solution so that the package can be both imported from Jupyter Notebook and run from commandline
+# Ugly but workable importing solution so that the package can be both 
+# imported as a package, run from commandline with `python -m bestiapop`
+# or from the source directory as `python bestiapop.py`
 if "bestiapop" in sys.modules:
     from bestiapop.connectors import (silo_connector, nasapower_connector)
     from bestiapop.producers import output
