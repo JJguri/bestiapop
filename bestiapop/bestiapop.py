@@ -56,7 +56,7 @@ import time
 import warnings
 import xarray as xr
 
-from connectors import (silo_connector, nasapower_connector)
+from . connectors import (silo_connector, nasapower_connector)
 from common import bestiapop_utils
 from producers import output
 
