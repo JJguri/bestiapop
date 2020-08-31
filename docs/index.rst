@@ -14,6 +14,7 @@ BestiaPop
     :maxdepth: 3
     :titlesonly:
 
+    index
     getting_started/usage
     api_reference/api
     paper/paper

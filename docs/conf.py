@@ -47,14 +47,13 @@ master_doc = "index"
 project = "BestiaPop"
 copyright = f"2019-{datetime.now().year}, Jonathan Ojeda & Diego Perez"
 author = "Diego Perez & Jonathan Ojeda"
-version = release = "2020.2.5"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
 # The short X.Y version.
-version = '2.5'
+version = '3.0'
 # The full version, including alpha/beta/rc tags.
 release = '1.0'
 
