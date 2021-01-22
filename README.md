@@ -172,7 +172,7 @@ Solar daily data are typically missing because the satellite observational data 
 
 ### Data request
 
-The data request is limited to years after 1981.
+Data request is limited to years after 1981.
 
 
 # Installation
