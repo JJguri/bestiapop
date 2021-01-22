@@ -129,6 +129,10 @@ If you request data at station locations the same checks are done; the main diff
 
 Differences between the API and NetCDF values only occur when a datum fails one of the aforementioned range checks, for example, when the interpolated maximum temperature is lower than the interpolated minimum temperature. Such situations typically arise due to errors in the observed data (leading to errors in the gridded surface), or in regions where there are very few recording stations. We expect there to be more errors in the gridded surfaces for the early years, as there were relatively few stations recording data (other than rainfall) before 1957. Plots showing the number of stations recording each variable as a function of time are provided in Jeffrey et al. 2001 (see the [Publications section on SILO](https://www.longpaddock.qld.gov.au/silo/about/publications-references/)).
 
+### Data request
+
+Data request is limited to years after 1889.
+
 ## About NASA POWER
 
 NASA's goal in Earth science is to observe, understand, and model the Earth system to discover how it is changing, to better predict change, and to understand the consequences for life on Earth. The Applied Sciences Program, within the Science Mission Directorate (which replaced both the Office of Earth Science and the Office of Space Science), serves NASA and Society by expanding and accelerating the realization of societal and economic benefits from Earth science, information, and technology research and development.
@@ -150,7 +154,7 @@ Bestiapop produces data at a daily step however the original datasets have diffe
 - **Solar**: The data was initially produced on 3-hourly time increments which are averaged to provide daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
 
 - **Meteorology**: The data was initially produced on 1-hourly time increments which are averaged to provided daily values. The daily averaged values are used to calculate climatologically averaged monthly values.
-
+ 
 ### Climate Variables
 
 One consideration is the name and number of variables in each data source (SILO vs NASAPOWER). They have different number of climate variables and names. Therefore, for a friendly use of BestiaPop with different data sources, we have defined generic variable names for global solar radiation, precipitation, maximum temperature and minimum temperature which are mandatory to create MET and WTH files for crop modelling purposes. Abbreviations of NASAPOWER variables and their corresponding variable names are provided below:
@@ -165,6 +169,11 @@ One consideration is the name and number of variables in each data source (SILO 
 ### Missing values
 
 Solar daily data are typically missing because the satellite observational data are missing and irretrievable. Therefore, in the NASAPOWER data there are missing values for this variable which are represented by `-99`. It is a problem for crop models that works at daily step due to they have defined boundaries for climate variables, so they crashes if read `Nan` values. To solve this problem, BestiaPop automatically calculates the mean value between the previous and the following `NaN`value of the variable and replace the `NaN` with the calculated mean.
+
+### Data request
+
+The data request is limited to years after 1981.
+
 
 # Installation
 
