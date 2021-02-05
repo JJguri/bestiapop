@@ -26,7 +26,7 @@ Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
 
 * **Data Analytics Specialist & Code Developer**: Diego Perez (@darkquassar / https://linkedin.com/in/diegope)
 
-* **Crop Physiologist & Crop Modeller**: Jonathan Ojeda (@JJguri / https://www.jojeda.com/)
+* **Crop Physiologist & Crop Modeller**: Jonathan Ojeda (@JJguri / https://www.jojeda.com/ / j.ojeda@uq.edu.au)
 
 ### Acknowledgements
 
@@ -388,17 +388,17 @@ Below you can find a descriptive table with some performance indicators for Best
 
 ## MET file example (APSIM)
 
-![image](/sample_data/products/met.jpg)
+![image](/sample-data/products/met.jpg)
 Complete MET file [here](/sample_data/products/-41.0-145.0.met) 
 
 ## WTH file example (DSSAT)
 
-![image](/sample_data/products/wth.jpg)
+![image](/sample-data/products/wth.jpg)
 Complete WTH file [here](/sample_data/products/-4101450161.WTH)
 
 ## CSV file example
 
-![image](/sample_data/products/csv.jpg)
+![image](/sample-data/products/csv.jpg)
 Complete CSV file [here](/sample_data/products/-41.0-145.0.silo.csv)
 
 # How do I cite BestiaPop?
