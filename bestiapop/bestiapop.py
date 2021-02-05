@@ -229,10 +229,27 @@ class CLIMATEBEAST():
             CLIMATEBEAST: A class object with access to CLIMATEBEAST methods
     """
 
-    def __init__(self, logger, action, data_source, output_path, output_type, input_path, climate_variables, year_range, lat_range, lon_range, multiprocessing):
+    def __init__(self, action, data_source, output_path, output_type, input_path, climate_variables, year_range, lat_range, lon_range, multiprocessing, logger=None):
+
+        if logger == None:
+            # Setup logging
+            try:
+                import coloredlogs
+                logger = logging.getLogger('POPBEAST')
+                coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="WARNING", logger=logger)
+
+            except ModuleNotFoundError:
+                logger = logging.getLogger('POPBEAST')
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+                console_handler = logging.StreamHandler()
+                console_handler.setFormatter(formatter)
+                console_handler.setLevel(logging.WARNING)
+                logger.addHandler(console_handler)
+                logger.setLevel(logging.WARNING)
+
+        self.logger = logger
 
         # Checking that valid input has been provided
-        self.logger = logger
         if action != "download-nc4-file":
             if not lat_range:
                 self.logger.error('You have not provided a valid value for latitude range. Cannot proceed.')
@@ -248,16 +265,21 @@ class CLIMATEBEAST():
         self.final_parallel_lon_range = np.empty(0)
 
         # General
+        self.output_type = output_type
         self.action = action
+        self.climate_variables = climate_variables
         self.data_source = data_source
         self.logger.info('Initializing {}'.format(__name__))
         if input_path is not None:
             self.input_path = Path(input_path)
         else:
             self.input_path = None
-        self.outputdir = Path(output_path)
-        self.output_type = output_type
-        self.climate_variables = climate_variables
+            
+        # Avoid capturing output path if output type is dataframe:
+        if self.output_type == 'dataframe':
+            pass
+        else:
+            self.outputdir = Path(output_path)
         
         # Get a handle to an instance of BestiaPop Utilities
         beastutils = bestiapop_utils.MyUtilityBeast(input_path=self.input_path)
@@ -272,15 +294,20 @@ class CLIMATEBEAST():
             self.lon_range = beastutils.get_coordinate_numpy_list(lon_range, "longitude", self.data_source)
 
         # Validate output directory
-        if self.outputdir.is_dir() == True:
-            if self.outputdir.exists() == False:
-                self.logger.info('{} does not exist, creating it...'.format(self.outputdir))
-                self.outputdir.mkdir(parents=True, exist_ok=True)
-        elif (self.outputdir.is_file() == True) and (self.outputdir.exists() == False):
-            self.logger.error('File {} does not exist'.format(self.outputdir))
-        else:
-            self.logger.error('{} is not a folder, please provide a folder path'.format(self.outputdir))
-            sys.exit(1)
+        try:
+            if self.outputdir.is_dir() == True:
+                if self.outputdir.exists() == False:
+                    self.logger.info('{} does not exist, creating it...'.format(self.outputdir))
+                    self.outputdir.mkdir(parents=True, exist_ok=True)
+            elif (self.outputdir.is_file() == True) and (self.outputdir.exists() == False):
+                self.logger.error('File {} does not exist'.format(self.outputdir))
+            else:
+                self.logger.error('{} is not a folder, please provide a folder path'.format(self.outputdir))
+                sys.exit(1)
+        except AttributeError:
+            # this means we have not passed an output_path variable
+            self.outputdir = None
+            pass
 
     def process_parallel_records(self, action):
         """Perform selected actions on NetCDF4 file in parallel mode 
@@ -596,13 +623,18 @@ class CLIMATEBEAST():
             self.data_output = output.DATAOUTPUT(self.data_source)
             self.total_climate_met_df = final_df_latlon_tuple_list[0]
             self.final_lon_range = final_df_latlon_tuple_list[1]
-            self.data_output.generate_output(
+            data_results = self.data_output.generate_output(
                 final_daily_df=self.total_climate_met_df,
                 lat_range=self.lat_range,
                 lon_range=self.final_lon_range,
                 outputdir=self.outputdir,
                 output_type=self.output_type
             )
+            
+            # Return dataframe if this was the selected output
+            # (it can only be run when running as package since it's not an option in the commandline)
+            if self.output_type == 'dataframe':
+                return data_results
 
 class _main:
 
@@ -655,7 +687,7 @@ class _main:
         logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
         
         # Grab an instance of the CLIMATEBEAST class
-        myclimatebeast = CLIMATEBEAST(logger, pargs.action, pargs.data_source, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing)
+        myclimatebeast = CLIMATEBEAST(pargs.action, pargs.data_source, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing, logger=logger)
         # Start to process the records
         if pargs.multiprocessing == True:
             logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")

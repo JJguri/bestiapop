@@ -12,6 +12,7 @@ from jinja2 import Template
 from numpy import array
 from pathlib import Path
 from tabulate import tabulate
+
 from tqdm import tqdm
 
 class DATAOUTPUT():
@@ -33,7 +34,10 @@ class DATAOUTPUT():
         try:
             import coloredlogs
             logger = logging.getLogger('POPBEAST.DATAOUTPUT')
-            coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
+            if 'bestiapop' in __name__:
+                coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="WARNING", logger=logger)
+            else:
+                coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
 
         except ModuleNotFoundError:
             logger = logging.getLogger('POPBEAST.DATAOUTPUT')
@@ -42,13 +46,20 @@ class DATAOUTPUT():
             console_handler.setFormatter(formatter)
             console_handler.setLevel(logging.DEBUG)
             logger.addHandler(console_handler)
-            logger.setLevel(logging.INFO)
+            if 'bestiapop' in __name__:
+                logger.setLevel(logging.WARNING)
+            else:
+                logger.setLevel(logging.INFO)
 
         # Setting up class variables
         self.logger = logger
         self.data_source = data_source
+        if 'bestiapop' in __name__:
+            self.tqdm_enabled = True
+        else:
+            self.tqdm_enabled = False
         
-    def generate_output(self, final_daily_df, lat_range, lon_range, outputdir, output_type="met"):
+    def generate_output(self, final_daily_df, lat_range, lon_range, outputdir=None, output_type="met"):
         """Generate required Output based on Output Type selected
 
         Args:
@@ -87,9 +98,9 @@ class DATAOUTPUT():
 
             final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
 
-            for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
+            for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc, disable=self.tqdm_enabled):
                 
-                for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+                for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc, disable=self.tqdm_enabled):
 
                     if primary_var_desc == "lat":
                         lat = primary_data_point
@@ -125,9 +136,9 @@ class DATAOUTPUT():
 
                 self.logger.info("Proceeding to the generation of MET files")
 
-                for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
+                for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc, disable=self.tqdm_enabled):
                     
-                    for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+                    for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc, disable=self.tqdm_enabled):
 
                         if primary_var_desc == "lat":
                             lat = primary_data_point
@@ -170,9 +181,9 @@ class DATAOUTPUT():
                 
                 self.logger.info("Proceeding to the generation of WTH files")
 
-                for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
+                for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc, disable=self.tqdm_enabled):
                     
-                    for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+                    for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc, disable=self.tqdm_enabled):
 
                         if primary_var_desc == "lat":
                             lat = primary_data_point
@@ -193,6 +204,19 @@ class DATAOUTPUT():
             except KeyError as e:
                 self.logger.error("Could not find all required climate variables to generate WTH file: {}".format(str(e)))
 
+        if output_type == "dataframe":
+            try:
+
+                # Rename df columns and sort them
+                final_daily_df = final_daily_df.rename(columns={"days": "day","daily_rain": "rain",'min_temp':'mint','max_temp':'maxt','radiation':'radn'})
+
+                final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
+                
+                return final_daily_df
+
+            except Exception as e:
+                    self.logger.error(e)
+            
         if output_type == "csv":
             # TODO: Clean this up...
 
@@ -208,9 +232,9 @@ class DATAOUTPUT():
 
                     final_daily_df = final_daily_df.groupby(['lon', 'lat', 'year', 'day'])[['radn', 'maxt', 'mint', 'rain']].sum().reset_index()
 
-                    for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc):
+                    for primary_data_point in tqdm(primary_var, ascii=True, desc=primary_var_desc, disable=self.tqdm_enabled):
                         
-                        for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc):
+                        for secondary_data_point in tqdm(secondary_var, ascii=True, desc=secondary_var_desc, disable=self.tqdm_enabled):
 
                             if primary_var_desc == "lat":
                                 lat = primary_data_point

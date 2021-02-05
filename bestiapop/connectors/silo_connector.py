@@ -32,17 +32,23 @@ class SILOClimateDataConnector():
         # in our script
         try:
             import coloredlogs
-            logger = logging.getLogger('POPBEAST.SILO_CONNECTOR')
-            coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
+            logger = logging.getLogger('POPBEAST.SILO_CONECTOR')
+            if 'bestiapop' in __name__:
+                coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="WARNING", logger=logger)
+            else:
+                coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
 
         except ModuleNotFoundError:
-            logger = logging.getLogger('POPBEAST.SILO_CONNECTOR')
+            logger = logging.getLogger('POPBEAST.SILO_CONECTOR')
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
             console_handler = logging.StreamHandler()
             console_handler.setFormatter(formatter)
             console_handler.setLevel(logging.DEBUG)
             logger.addHandler(console_handler)
-            logger.setLevel(logging.INFO)
+            if 'bestiapop' in __name__:
+                logger.setLevel(logging.WARNING)
+            else:
+                logger.setLevel(logging.INFO)
 
         # Setting up class variables
         self.logger = logger
@@ -279,7 +285,7 @@ class SILOClimateDataConnector():
 
         # Now iterating over lat and lon combinations
         # Each year-lat-lon matrix generates a different file
-        for lat in tqdm(lat_range, file=sys.stdout, ascii=True, desc="Total Progress"):
+        for lat in tqdm(lat_range, file=sys.stdout, ascii=True, desc="Fetching and Parsing Data"):
 
             for lon in lon_range:
 
