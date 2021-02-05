@@ -389,17 +389,17 @@ Below you can find a descriptive table with some performance indicators for Best
 ## MET file example (APSIM)
 
 ![image](/sample-data/products/met.jpg)
-Complete MET file [here](/sample_data/products/-41.0-145.0.met) 
+Complete MET file [here](/sample-data/products/-41.0-145.0.met) 
 
 ## WTH file example (DSSAT)
 
 ![image](/sample-data/products/wth.jpg)
-Complete WTH file [here](/sample_data/products/-4101450161.WTH)
+Complete WTH file [here](/sample-data/products/-4101450161.WTH)
 
 ## CSV file example
 
 ![image](/sample-data/products/csv.jpg)
-Complete CSV file [here](/sample_data/products/-41.0-145.0.silo.csv)
+Complete CSV file [here](/sample-data/products/-41.0-145.0.silo.csv)
 
 # How do I cite BestiaPop?
 
