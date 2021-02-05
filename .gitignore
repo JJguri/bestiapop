@@ -38,3 +38,8 @@ test/*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Jupyter #
+###########
+**/.ipyn_*/**
+

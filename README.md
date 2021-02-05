@@ -44,6 +44,10 @@ Here you can visualise BestiaPop in action
 
 ![image](/docs/_static/bpop_in_action.gif)
 
+## Use it in Jupyter Notebook :)
+
+If you would like to use BESTIAPOP in you Jupyter Notebook, you can! Please see the example [notebook](/sample_data/BestiaPop.ipynb)
+
 # Process-based (mechanistic) crop models
 
 Process-based crop models are increasingly used in agricultural decision making. In the last two decades, they have intensively contributed to crop management, environmental impact studies, climate risk assessment and climate change adaptation analysis. The number of crop models and model users is increasing and several studies have been intensively focused on model development, i.e. building or improving the science behind the model and multi-model ensembles. [APSIM](https://www.apsim.info/) (Agricultural Production Systems Simulator) and [DSSAT](https://dssat.net/) (Decision Support System for Agrotechnology Transfer) are the two major crop models used by the scientific community worldwide.

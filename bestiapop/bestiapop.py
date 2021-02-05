@@ -3,7 +3,7 @@
 '''
     NAME: BESTIAPOP (POPBEAST) ("My heroe es, la gran bestia pop!", thanks Redonditos de Ricota)
     DESCRIPTION: A python package to automate the extraction and processing of climate data for crop modelling.
-    MAJOR/MINOR VERSION: 3.0
+    MAJOR/MINOR VERSION: 3.0.5
 
     DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
     DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
@@ -31,7 +31,8 @@
         v2.1 - Generating final MET file
         v2.2 - Adding commandline parameter to allow for the selection of output type: either MET or CSV
         v2.5 - Implemented MultiProcessing for MET file generation, fixed Pandas warnings, decoupled output generation from data carving, added "days" counter for proper output when tasks run longer than 24hs.
-        v3.0 - Major version jump due to complete restructuring of BestiaPop. Broke down the single script into multiple ones according to functionalities to make it more extensible and prepare for future enhancements. New features: ****
+        v3.0 - Major version jump due to complete restructuring of BestiaPop. Broke down the single script into multiple ones according to functionalities to make it more extensible and prepare for future enhancements.
+        v3.0.5 - Abiliy to import bestiapop as package. Ability to store data in dataframes for further processing.
         
     TODO:
         1. Implement a new functionality in APSIM that automatically executes this code by only providing lat and lon values (and generating a MET)
