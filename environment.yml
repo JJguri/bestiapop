@@ -21,4 +21,5 @@ dependencies:
   - coloredlogs
   - pandas
   - scipy
-  - bestiapop
+  - pip:
+    - bestiapop
