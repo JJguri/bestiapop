@@ -3,7 +3,7 @@
 '''
     NAME: BESTIAPOP (POPBEAST) ("My heroe es, la gran bestia pop!", thanks Redonditos de Ricota)
     DESCRIPTION: A python package to automate the extraction and processing of climate data for crop modelling.
-    MAJOR/MINOR VERSION: 3.0.5
+    MAJOR/MINOR VERSION: 3.0.6
 
     DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
     DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
