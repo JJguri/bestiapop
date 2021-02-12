@@ -121,16 +121,8 @@ class Arguments():
         )
 
         self.parser.add_argument(
-            "-latf", "--latitude-file",
-            help="A file containing a single column with a list of latitudes that you would like BestiaPop to extract data from.",
-            type=self.extract_coord_from_file,
-            default=None,
-            required=False
-        )
-
-        self.parser.add_argument(
-            "-lonf", "--longitude-file",
-            help="A file containing a single column with a list of longitudes that you would like BestiaPop to extract data from.",
+            "-cf", "--coordinates-file",
+            help="A CSV file containing two columns: first one with a single latitude value, and the second one with a single longitude value. BestiaPop will iterate over these combinations.",
             type=self.extract_coord_from_file,
             default=None,
             required=False
@@ -187,8 +179,8 @@ class Arguments():
 
     def extract_coord_from_file(self, file):
         #self.logger.info("A file has been provided with coordinate values, processing it...")
-        coordinate_list_table = pd.read_csv(file, names=["coord"])
-        coordinate_list_array = np.array(coordinate_list_table.coord.to_list(), dtype=float)
+        coordinate_list_table = pd.read_csv(file, names=['lat', 'lon'])
+        coordinate_list_array = [[row.lat, row.lon] for i, row in coordinate_list_table.iterrows()]
         return coordinate_list_array
 
     def space_separated_list_float(self, string):
@@ -662,13 +654,10 @@ class _main:
         pargs = args.get_args()
 
         # Pre-process the Latitude and Longitude argument
-        if pargs.__contains__("latitude_file"):
-            if pargs.latitude_file != None:
-                pargs.latitude_range = pargs.latitude_file
-        if pargs.__contains__("longitude_file"):
-            if pargs.longitude_file != None:
-                pargs.longitude_range = pargs.longitude_file
-        
+        if pargs.__contains__("coordinates_file"):
+            if pargs.coordinates_file != None:
+                coordinates_range = pargs.coordinates_file
+
         # Capturing start time for debugging purposes
         st = datetime.now()
 
@@ -687,14 +676,50 @@ class _main:
         logger.info(bpop_logo)
         logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
         
-        # Grab an instance of the CLIMATEBEAST class
-        myclimatebeast = CLIMATEBEAST(pargs.action, pargs.data_source, pargs.output_directory, pargs.output_type, pargs.input_directory, pargs.climate_variable, pargs.year_range, pargs.latitude_range, pargs.longitude_range, multiprocessing=pargs.multiprocessing, logger=logger)
-        # Start to process the records
-        if pargs.multiprocessing == True:
-            logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
-            myclimatebeast.process_parallel_records(pargs.action)
-        else:
-            myclimatebeast.process_records(pargs.action)
+        try:
+            if coordinates_range:
+                # Iterate over range of lat/lon
+                for coord in coordinates_range:
+                    print(coord)
+                    print([coord[0]])
+                    print([coord[1]])
+                    # Grab an instance of the CLIMATEBEAST class
+                    myclimatebeast = CLIMATEBEAST(
+                                        action=pargs.action,
+                                        data_source=pargs.data_source,
+                                        output_path=pargs.output_directory,
+                                        output_type=pargs.output_type,
+                                        input_path=pargs.input_directory,
+                                        climate_variables=pargs.climate_variable,
+                                        year_range=pargs.year_range,
+                                        lat_range=[coord[0]],
+                                        lon_range=[coord[1]],
+                                        multiprocessing=pargs.multiprocessing,
+                                        logger=logger)
+                    # Start to process the records
+                    # NOTE: multiprocessing not enabled for this mode
+                    myclimatebeast.process_records(pargs.action)
+        except Exception as e:
+            # Grab an instance of the CLIMATEBEAST class
+            print(e)
+            myclimatebeast = CLIMATEBEAST(
+                                pargs.action, 
+                                pargs.data_source,
+                                pargs.output_directory,
+                                pargs.output_type,
+                                pargs.input_directory,
+                                pargs.climate_variable,
+                                pargs.year_range,
+                                pargs.latitude_range,
+                                pargs.longitude_range,
+                                multiprocessing=pargs.multiprocessing,
+                                logger=logger)
+            # Start to process the records
+            if pargs.multiprocessing == True:
+                logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
+                myclimatebeast.process_parallel_records(pargs.action)
+            else:
+                myclimatebeast.process_records(pargs.action)
             
         # Capturing end time for debugging purposes
         et = datetime.now()

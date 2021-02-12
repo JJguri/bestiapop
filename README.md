@@ -258,6 +258,25 @@ python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "d
 python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" -lat "-41.15 -41.05" -lon "145.5 145.6" -o C:\some\output\folder\ -ot met
 ```
 
+#### Generate MET output files FROM A LIST OF LAT/LON combinations
+
+This option is handy if you already know the combinations of lat/lon that you want to process.
+
+> **Note**:
+    The CSV file with lat/lon combinations does not need to have a header and should only list a single combination per line like so:
+
+    
+    -41.15,145.5
+    -43.45,146.7
+    -41.25,145.25
+    -42.70,147.45
+    -41.50,145.6
+    
+
+```bash
+python bestiapop.py -a generate-climate-file -s silo -y "2015-2016" -c "radiation max_temp min_temp daily_rain" --coordinates-file .\path\to\coordinates.csv -o C:\some\output\folder\ -ot met
+```
+
 #### Generate WTH output files (for DSSAT) output files using SILO cloud API, for global solar radiation, minimum air temperature, maximum air temperature and daily rainfall for years 2015 to 2016
 
 ```powershell
