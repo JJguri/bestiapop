@@ -680,9 +680,6 @@ class _main:
             if coordinates_range:
                 # Iterate over range of lat/lon
                 for coord in coordinates_range:
-                    print(coord)
-                    print([coord[0]])
-                    print([coord[1]])
                     # Grab an instance of the CLIMATEBEAST class
                     myclimatebeast = CLIMATEBEAST(
                                         action=pargs.action,
