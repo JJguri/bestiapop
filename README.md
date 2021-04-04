@@ -422,7 +422,9 @@ Complete CSV file [here](/sample-data/products/-41.0-145.0.silo.csv)
 
 # How do I cite BestiaPop?
 
-1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2019) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. doi:10.1016/j.scitotenv.2019.135589
+1. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2020) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. [link](doi:10.1016/j.scitotenv.2019.135589)
+2. Ojeda JJ, Eyshi Rezaei E, Remenyi TA, Webber HA, Siebert S, Meinke H, Webb MA, Kamali B, Harris RMB, Kidd DB, Mohammed CL, 
+McPhee J, Capuano J, Ewert F (2021) Implications of data aggregation method on crop model outputs – The case of irrigated potato systems in Tasmania, Australia. European Journal of Agronomy.126, 126276. [link](doi.org/10.1016/j.eja.2021.126276)
 
 # Package references
 
