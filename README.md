@@ -40,11 +40,12 @@ Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
 
 ## How do I cite BestiaPop?
 
-1. Give us a star in this repo and specify in your work (paper, report, etc) you have used 
-_**Bestiapop**_
-2. Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2020) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. Science of the Total Environment. 710, 135589. [link paper](https://www.sciencedirect.com/science/article/pii/S0048969719355846?casa_token=OGL6vAdGeLEAAAAA:dULqxjuvxgte1Fbi-TKw8lVkl-l5bjX5y0Zy0nuejczXqfSzv-O4O3mj17SuA4R5uelV-Akuqj0)
-3. Ojeda JJ, Eyshi Rezaei E, Remenyi TA, Webber HA, Siebert S, Meinke H, Webb MA, Kamali B, Harris RMB, Kidd DB, Mohammed CL, 
-McPhee J, Capuano J, Ewert F (2021) Implications of data aggregation method on crop model outputs – The case of irrigated potato systems in Tasmania, Australia. European Journal of Agronomy.126, 126276. [link paper](https://www.sciencedirect.com/science/article/pii/S1161030121000484?casa_token=b-63Jy5I_lMAAAAA:OOd81fokigyPEfmW7OmfyNC__I3oCyo1G3zgUHtfI1gL-LVPGdNR5tk53G1M_Y0w-Q934oKw74g)
+1. Give us a star in this repository (right top of this page)
+
+2. Explicitly specify in your work (paper, report, etc) you have used _**Bestiapop**_ and cite the following two papers:
+* Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2020) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. _Science of the Total Environment_. 710, 135589. [link paper](https://www.sciencedirect.com/science/article/pii/S0048969719355846?casa_token=OGL6vAdGeLEAAAAA:dULqxjuvxgte1Fbi-TKw8lVkl-l5bjX5y0Zy0nuejczXqfSzv-O4O3mj17SuA4R5uelV-Akuqj0)
+* Ojeda JJ, Eyshi Rezaei E, Remenyi TA, Webber HA, Siebert S, Meinke H, Webb MA, Kamali B, Harris RMB, Kidd DB, Mohammed CL, 
+McPhee J, Capuano J, Ewert F (2021) Implications of data aggregation method on crop model outputs – The case of irrigated potato systems in Tasmania, Australia. _European Journal of Agronomy_.126, 126276. [link paper](https://www.sciencedirect.com/science/article/pii/S1161030121000484?casa_token=b-63Jy5I_lMAAAAA:OOd81fokigyPEfmW7OmfyNC__I3oCyo1G3zgUHtfI1gL-LVPGdNR5tk53G1M_Y0w-Q934oKw74g)
 
 # BestiaPop in action!
 
