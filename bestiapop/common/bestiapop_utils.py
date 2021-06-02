@@ -394,3 +394,10 @@ class MyUtilityBeast():
 
         # Return results
         return (total_climate_df, final_lon_range)
+    
+    def get_coord_list_from_csv(self, input_file):
+        # This function will return a list of lists
+        # where the first value represents latitude and the second value represents longitude
+        coordinate_list_table = pd.read_csv(input_file, names=['lat', 'lon'])
+        coordinate_list_array = [[row.lat, row.lon] for i, row in coordinate_list_table.iterrows()]
+        return coordinate_list_array

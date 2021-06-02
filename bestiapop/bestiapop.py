@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 '''
-    NAME: BESTIAPOP (POPBEAST) ("My heroe es, la gran bestia pop!", thanks Redonditos de Ricota)
+    NAME: BESTIAPOP (POPBEAST)
     DESCRIPTION: A python package to automate the extraction and processing of climate data for crop modelling.
-    MAJOR/MINOR VERSION: 3.0.6
+    MAJOR/MINOR VERSION: 3.0.8
 
     DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
     DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
@@ -42,20 +42,18 @@
 
 import argparse
 import calendar
-import h5netcdf
 import logging
-#import netCDF4
 import numpy as np
 import multiprocessing as mp
 import os
 import pandas as pd
 import re
 import requests
-import s3fs
 import sys
 import time
 import warnings
-import xarray as xr
+
+from tqdm import tqdm
 
 # Ugly but workable importing solution so that the package can be both 
 # imported as a package, run from commandline with `python -m bestiapop`
@@ -178,7 +176,7 @@ class Arguments():
         self.pargs = self.parser.parse_args()
 
     def extract_coord_from_file(self, file):
-        #self.logger.info("A file has been provided with coordinate values, processing it...")
+        self.logger.info("A file has been provided with coordinate values, processing it...")
         coordinate_list_table = pd.read_csv(file, names=['lat', 'lon'])
         coordinate_list_array = [[row.lat, row.lon] for i, row in coordinate_list_table.iterrows()]
         return coordinate_list_array
@@ -631,7 +629,7 @@ class CLIMATEBEAST():
 
 class _main:
 
-    def main():
+    def main(self):
         # Setup logging
         # We need to pass the "logger" to any Classes or Modules that may use it 
         # in our script
@@ -679,7 +677,7 @@ class _main:
         try:
             if coordinates_range:
                 # Iterate over range of lat/lon
-                for coord in coordinates_range:
+                for coord in tqdm(coordinates_range):
                     # Grab an instance of the CLIMATEBEAST class
                     myclimatebeast = CLIMATEBEAST(
                                         action=pargs.action,
@@ -693,12 +691,13 @@ class _main:
                                         lon_range=[coord[1]],
                                         multiprocessing=pargs.multiprocessing,
                                         logger=logger)
+                    # Reduce logging verbosity
+                    logger.setLevel(logging.WARNING)
                     # Start to process the records
                     # NOTE: multiprocessing not enabled for this mode
                     myclimatebeast.process_records(pargs.action)
         except Exception as e:
             # Grab an instance of the CLIMATEBEAST class
-            print(e)
             myclimatebeast = CLIMATEBEAST(
                                 pargs.action, 
                                 pargs.data_source,
