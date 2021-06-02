@@ -20,6 +20,8 @@ dependencies:
   - numpy
   - coloredlogs
   - pandas
+  - setuptools
   - scipy
+  - twine
   - pip:
     - bestiapop

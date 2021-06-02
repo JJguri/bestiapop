@@ -1,5 +1,5 @@
 import sys
-from distutils.core import setup
+from setuptools import setup
 from os import path
 
 # Newer packaging standards may recommend removing the current dir from the
@@ -22,6 +22,7 @@ Programming Language :: Python
 Programming Language :: Python :: 3
 Programming Language :: Python :: 3.6
 Programming Language :: Python :: 3.7
+Programming Language :: Python :: 3.8
 Topic :: Scientific/Engineering
 Topic :: Database
 Topic :: Software Development :: Libraries :: Python Modules
