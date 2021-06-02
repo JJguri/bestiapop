@@ -39,8 +39,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
     
 short_description = "Climate Data Mining Automation Framework"
-long_description = long_description,
-long_description_content_type = 'text/markdown'
+long_description = long_description
 
 _PACKAGES = [
     'bestiapop',
@@ -89,6 +88,7 @@ setup(
   license = 'bsd-3-clause',
   description = short_description,
   long_description = long_description,
+  long_description_content_type = 'text/markdown',
   author = 'Diego Perez & Jonathan Ojeda',
   author_email = 'darkquasar7@gmail.com',
   url = 'https://bestiapop.readthedocs.io/en/latest/',
