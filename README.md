@@ -190,7 +190,8 @@ Solar daily data are typically missing because the satellite observational data 
 
 ### Data request
 
-Data request is limited to years after 1981.
+Rainfall, maximum and minimum temperature request is limited to years after 1981, 
+however solar radiation data is available after 1983. For details see [here](https://power.larc.nasa.gov/docs/methodology/data/).
 
 
 # Installation
