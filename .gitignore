@@ -1,5 +1,6 @@
 # Do not log vscode configuration
 .vscode
+.vs
 /dist/
 /build/
 *MANIFEST*
@@ -22,6 +23,8 @@ test/*
 *.jar
 *.rar
 *.tar
+/bestiapop-*
+/bestiapop.egg*
 
 # Logs and databases #
 ######################

@@ -1,5 +1,6 @@
 import sys
-from distutils.core import setup
+from setuptools import setup
+from os import path
 
 # Newer packaging standards may recommend removing the current dir from the
 # path, add it back if needed.
@@ -21,6 +22,7 @@ Programming Language :: Python
 Programming Language :: Python :: 3
 Programming Language :: Python :: 3.6
 Programming Language :: Python :: 3.7
+Programming Language :: Python :: 3.8
 Topic :: Scientific/Engineering
 Topic :: Database
 Topic :: Software Development :: Libraries :: Python Modules
@@ -30,18 +32,15 @@ Operating System :: MacOS :: MacOS X
 Operating System :: Microsoft :: Windows
 """
 
-short_desc = "Climate Data Mining Automation Framework"
+# *** DESCRIPTION ***
 
-long_desc = \
-"""
-BestiaPop (a spanish word that translates to *pop beast*), is a Python package which allows
-climate and agricultural data scientists to automatically download
-SILO's (Scientific Information for Land Owners) or NASAPOWER gridded climate data
-and convert this data to files that can be ingested by *Crop Modelling Software* like APSIM or DSSAT.
-The package offers the possibility to select a range of grids (5 km × 5 km resolution)
-and years producing various types of output files: CSV, MET (for APSIM),
-WTH (for DSSAT) and soon JSON (which will become part of BestiaPop's API in the future).
-"""
+# read the contents of README file
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+    
+short_description = "Climate Data Mining Automation Framework"
+long_description = long_description
 
 _PACKAGES = [
     'bestiapop',
@@ -50,7 +49,7 @@ _PACKAGES = [
     'bestiapop.producers'
 ]
 
-_VERSION = '3.0.6'
+_VERSION = '3.0.8'
 
 _KEYWORDS = [
     'silo',
@@ -59,6 +58,7 @@ _KEYWORDS = [
     'dssat',
     'met',
     'wth',
+    'crop model',
     'crop modelling',
     'crops',
     'agriculture',
@@ -87,13 +87,14 @@ setup(
   classifiers = [x for x in _CLASSIFIERS.split("\n") if x],
   version = _VERSION,
   license = 'bsd-3-clause',
-  description = short_desc,
-  long_description = long_desc,
+  description = short_description,
+  long_description = long_description,
+  long_description_content_type = 'text/markdown',
   author = 'Diego Perez & Jonathan Ojeda',
   author_email = 'darkquasar7@gmail.com',
   url = 'https://bestiapop.readthedocs.io/en/latest/',
   download_url = 'https://github.com/JJguri/bestiapop/archive/v{}.tar.gz'.format(_VERSION),
   keywords = _KEYWORDS,
   install_requires = _INSTALLREQUIRES,
-  python_requires = '>=3.6',
+  python_requires = '>=3.6'
 )

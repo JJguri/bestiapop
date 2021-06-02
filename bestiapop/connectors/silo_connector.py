@@ -1,5 +1,3 @@
-
-
 import h5netcdf
 import io
 import logging

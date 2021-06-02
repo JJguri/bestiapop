@@ -35,10 +35,6 @@ Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
 * SILO (Scientific Information for Land Owners), see: https://www.longpaddock.qld.gov.au/silo/about/
 * NASAPOWER, see: https://power.larc.nasa.gov/
 
-### Other Contributors
-
-* Drew Holzworth ([helping](https://github.com/APSIMInitiative/ApsimX/issues/5423) integrate BestiaPop into APSIM, kudos!)
-
 ## How do I cite BestiaPop?
 
 1. Give us a star in this repository if you download or use this package (right top of this page)
