@@ -59,9 +59,9 @@ from tqdm import tqdm
 # imported as a package, run from commandline with `python -m bestiapop`
 # or from the source directory as `python bestiapop.py`
 if "bestiapop" in sys.modules:
-    from . connectors import (silo_connector, nasapower_connector)
-    from . common import bestiapop_utils
-    from . producers import output
+    from .connectors import (silo_connector, nasapower_connector)
+    from .common import bestiapop_utils
+    from .producers import output
 else:
     from connectors import (silo_connector, nasapower_connector)
     from common import bestiapop_utils

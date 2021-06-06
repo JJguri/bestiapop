@@ -7,7 +7,6 @@ __license__ = "BSD-3-Clause"
 __stable__ = True
 __version__ = "3.0.9"
 
-import bestiapop
 from . import common
 from . import connectors
 from . import producers
