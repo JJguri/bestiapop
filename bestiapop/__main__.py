@@ -8,13 +8,11 @@ import sys
 if __package__ == '':
     path = os.path.dirname(os.path.dirname(__file__))
     sys.path.insert(0, path)
-    
-if "bestiapop" in sys.modules:
-    from . import bestiapop_cli
-else:
-    import bestiapop_cli
 
-print("yeah {}".format(__name__))
+# This is convoluted but essentially, by importing the bestiapop cli (bestiapop.py) this way
+# we can ensure that bestiapop will run whether we use `python -m bestiapop` or `python bestiapop`
+# (the latter whilst being in the repository root directory since it considers the "bestiapop" folder as a package)
+import bestiapop.bestiapop as bestiapop
 
 if __name__ == '__main__':
-    bestiapop_cli.main()
+    bestiapop.main()
