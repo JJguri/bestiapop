@@ -5,13 +5,10 @@ from __future__ import print_function
 __author__ = "Diego Perez <darkquasar7@gmail.com> & Jonathan Ojeda <jonathan.ojeda>"
 __license__ = "BSD-3-Clause"
 __stable__ = True
-__version__ = "3.0.8"
-
-import sys
-sys.path.append("bestiapop")
+__version__ = "3.0.9"
 
 import bestiapop
-from .bestiapop import _main
 from . import common
 from . import connectors
 from . import producers
+import __main__

@@ -8,8 +8,13 @@ import sys
 if __package__ == '':
     path = os.path.dirname(os.path.dirname(__file__))
     sys.path.insert(0, path)
+    
+if "bestiapop" in sys.modules:
+    from . import bestiapop_cli
+else:
+    import bestiapop_cli
 
-from bestiapop import _main
+print("yeah {}".format(__name__))
 
 if __name__ == '__main__':
-    sys.exit(_main.main())
+    bestiapop_cli.main()

@@ -3,7 +3,7 @@
 '''
     NAME: BESTIAPOP (POPBEAST)
     DESCRIPTION: A python package to automate the extraction and processing of climate data for crop modelling.
-    MAJOR/MINOR VERSION: 3.0.8
+    MAJOR/MINOR VERSION: 3.0.9
 
     DATA ANALYTICS SPECIALIST - CORE DEVELOPER: Diego Perez (@darkquassar / https://linkedin.com/in/diegope) 
     DATA SCIENTIST - MODEL DEVELOPER: Jonathan Ojeda (https://researchgate.net/profile/Jonathan_Ojeda)
@@ -627,111 +627,108 @@ class CLIMATEBEAST():
             if self.output_type == 'dataframe':
                 return data_results
 
-class _main:
+def main():
+    # Setup logging
+    # We need to pass the "logger" to any Classes or Modules that may use it 
+    # in our script
+    try:
+        import coloredlogs
+        logger = logging.getLogger('POPBEAST')
+        coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
 
-    def main(self):
-        # Setup logging
-        # We need to pass the "logger" to any Classes or Modules that may use it 
-        # in our script
-        try:
-            import coloredlogs
-            logger = logging.getLogger('POPBEAST')
-            coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
+    except ModuleNotFoundError:
+        logger = logging.getLogger('POPBEAST')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(logging.DEBUG)
+        logger.addHandler(console_handler)
+        logger.setLevel(logging.INFO)
 
-        except ModuleNotFoundError:
-            logger = logging.getLogger('POPBEAST')
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(formatter)
-            console_handler.setLevel(logging.DEBUG)
-            logger.addHandler(console_handler)
-            logger.setLevel(logging.INFO)
+    # Instantiating the arguments class
+    args = Arguments(sys.argv)
+    pargs = args.get_args()
 
-        # Instantiating the arguments class
-        args = Arguments(sys.argv)
-        pargs = args.get_args()
+    # Pre-process the Latitude and Longitude argument
+    if pargs.__contains__("coordinates_file"):
+        if pargs.coordinates_file != None:
+            coordinates_range = pargs.coordinates_file
 
-        # Pre-process the Latitude and Longitude argument
-        if pargs.__contains__("coordinates_file"):
-            if pargs.coordinates_file != None:
-                coordinates_range = pargs.coordinates_file
+    # Capturing start time for debugging purposes
+    st = datetime.now()
 
-        # Capturing start time for debugging purposes
-        st = datetime.now()
+    # BestiaPop Logo
+    bpop_logo = """
+    
+                        __________                 __   __      __________              
+                        \______   \ ____   _______/  |_|__|____ \______   \____ ______  
+                        |    |  _// __ \ /  ___/\   __\  \__  \ |     ___/  _ \\____ \ 
+                        |    |   \  ___/ \___ \  |  | |  |/ __ \|    |  (  <_> )  |_> >
+                        |______  /\___  >____  > |__| |__(____  /____|   \____/|   __/ 
+                                \/     \/     \/               \/               |__|   
+                                BESTIAPOP Climate Data Mining Automation Framework 
+    """
 
-        # BestiaPop Logo
-        bpop_logo = """
-        
-                           __________                 __   __      __________              
-                           \______   \ ____   _______/  |_|__|____ \______   \____ ______  
-                            |    |  _// __ \ /  ___/\   __\  \__  \ |     ___/  _ \\____ \ 
-                            |    |   \  ___/ \___ \  |  | |  |/ __ \|    |  (  <_> )  |_> >
-                            |______  /\___  >____  > |__| |__(____  /____|   \____/|   __/ 
-                                   \/     \/     \/               \/               |__|   
-                                    BESTIAPOP Climate Data Mining Automation Framework 
-        """
-
-        logger.info(bpop_logo)
-        logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
-        
-        try:
-            if coordinates_range:
-                # Iterate over range of lat/lon
-                for coord in tqdm(coordinates_range):
-                    # Grab an instance of the CLIMATEBEAST class
-                    myclimatebeast = CLIMATEBEAST(
-                                        action=pargs.action,
-                                        data_source=pargs.data_source,
-                                        output_path=pargs.output_directory,
-                                        output_type=pargs.output_type,
-                                        input_path=pargs.input_directory,
-                                        climate_variables=pargs.climate_variable,
-                                        year_range=pargs.year_range,
-                                        lat_range=[coord[0]],
-                                        lon_range=[coord[1]],
-                                        multiprocessing=pargs.multiprocessing,
-                                        logger=logger)
-                    # Reduce logging verbosity
-                    logger.setLevel(logging.WARNING)
-                    # Start to process the records
-                    # NOTE: multiprocessing not enabled for this mode
-                    myclimatebeast.process_records(pargs.action)
-        except Exception as e:
-            # Grab an instance of the CLIMATEBEAST class
-            myclimatebeast = CLIMATEBEAST(
-                                pargs.action, 
-                                pargs.data_source,
-                                pargs.output_directory,
-                                pargs.output_type,
-                                pargs.input_directory,
-                                pargs.climate_variable,
-                                pargs.year_range,
-                                pargs.latitude_range,
-                                pargs.longitude_range,
-                                multiprocessing=pargs.multiprocessing,
-                                logger=logger)
-            # Start to process the records
-            if pargs.multiprocessing == True:
-                logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
-                myclimatebeast.process_parallel_records(pargs.action)
-            else:
+    logger.info(bpop_logo)
+    logger.info("Starting BESTIAPOP Climate Data Mining Automation Framework")
+    
+    try:
+        if coordinates_range:
+            # Iterate over range of lat/lon
+            for coord in tqdm(coordinates_range):
+                # Grab an instance of the CLIMATEBEAST class
+                myclimatebeast = CLIMATEBEAST(
+                                    action=pargs.action,
+                                    data_source=pargs.data_source,
+                                    output_path=pargs.output_directory,
+                                    output_type=pargs.output_type,
+                                    input_path=pargs.input_directory,
+                                    climate_variables=pargs.climate_variable,
+                                    year_range=pargs.year_range,
+                                    lat_range=[coord[0]],
+                                    lon_range=[coord[1]],
+                                    multiprocessing=pargs.multiprocessing,
+                                    logger=logger)
+                # Reduce logging verbosity
+                logger.setLevel(logging.WARNING)
+                # Start to process the records
+                # NOTE: multiprocessing not enabled for this mode
                 myclimatebeast.process_records(pargs.action)
-            
-        # Capturing end time for debugging purposes
-        et = datetime.now()
-        
-        days = (et-st).days
-        hours, remainder = divmod((et-st).seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
+    except Exception as e:
+        # Grab an instance of the CLIMATEBEAST class
+        myclimatebeast = CLIMATEBEAST(
+                            pargs.action, 
+                            pargs.data_source,
+                            pargs.output_directory,
+                            pargs.output_type,
+                            pargs.input_directory,
+                            pargs.climate_variable,
+                            pargs.year_range,
+                            pargs.latitude_range,
+                            pargs.longitude_range,
+                            multiprocessing=pargs.multiprocessing,
+                            logger=logger)
+        # Start to process the records
+        if pargs.multiprocessing == True:
+            logger.info("\x1b[47m \x1b[32mMultiProcessing selected \x1b[0m \x1b[39m")
+            myclimatebeast.process_parallel_records(pargs.action)
+        else:
+            myclimatebeast.process_records(pargs.action)
 
-        logger.info("Finished this unit of work")
-        logger.info('Workload took: \x1b[47m \x1b[32m{} days / {} hours / {} minutes / {} seconds \x1b[0m \x1b[39m'.format(days,hours,minutes,seconds))
+    # Capturing end time for debugging purposes
+    et = datetime.now()
+
+    days = (et-st).days
+    hours, remainder = divmod((et-st).seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    logger.info("Finished this unit of work")
+    logger.info('Workload took: \x1b[47m \x1b[32m{} days / {} hours / {} minutes / {} seconds \x1b[0m \x1b[39m'.format(days,hours,minutes,seconds))
 
 if __name__ == '__main__':
     try:
-        _main.main()
-        
-    
+        main()
+
     except KeyboardInterrupt:
         print("\n" + "BestiaPop amazing work has been interrupted by a mortal. Returning to the depths of the earth." + "\n\n")
         sys.exit()
