@@ -731,7 +731,7 @@ if __name__ == '__main__':
     try:
         _main.main()
         
-    
+   
     except KeyboardInterrupt:
         print("\n" + "BestiaPop amazing work has been interrupted by a mortal. Returning to the depths of the earth." + "\n\n")
         sys.exit()
