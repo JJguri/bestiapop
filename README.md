@@ -209,14 +209,7 @@ There are two ways to install BestiaPop
 1. Clone this repo
 2. Install required packages.
 
-### Using pip
-
-1. **Change directory to the repo folder**
-2. `pip install -r pip_requirements.txt`
-
-### Using Anaconda
-
-#### Create Custom Environment
+### Create Custom Environment with Anaconda
 
 1. `conda env create --name bestiapop --file environment.yml`
 2. `conda activate bestiapop`
