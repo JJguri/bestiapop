@@ -32,7 +32,10 @@ class NASAPowerClimateDataConnector():
         try:
             import coloredlogs
             logger = logging.getLogger('POPBEAST.NASAPOWER_CONNECTOR')
-            coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
+            if 'bestiapop' in __name__:
+                coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="WARNING", logger=logger)
+            else:
+                coloredlogs.install(fmt='%(asctime)s - %(name)s - %(message)s', level="DEBUG", logger=logger)
 
         except ModuleNotFoundError:
             logger = logging.getLogger('POPBEAST.NASAPOWER_CONNECTOR')
@@ -41,7 +44,10 @@ class NASAPowerClimateDataConnector():
             console_handler.setFormatter(formatter)
             console_handler.setLevel(logging.DEBUG)
             logger.addHandler(console_handler)
-            logger.setLevel(logging.INFO)
+            if 'bestiapop' in __name__:
+                logger.setLevel(logging.WARNING)
+            else:
+                logger.setLevel(logging.INFO)
 
         # Setting up class variables
         self.logger = logger

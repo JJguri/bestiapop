@@ -190,8 +190,7 @@ class SILOClimateDataConnector():
                     self.climate_data = json_data['data']
                 
                 except Exception as e:
-                    print("mierda")
-                    print(r.url)
+                    self.logger.error(r.text)
                     if re.match("Silo is unable to supply data for Latitude", r.text):
                         self.logger.error(r.text)
                         self.logger.error(e)

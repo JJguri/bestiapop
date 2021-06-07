@@ -5,7 +5,7 @@ from __future__ import print_function
 __author__ = "Diego Perez <darkquasar7@gmail.com> & Jonathan Ojeda <jonathan.ojeda>"
 __license__ = "BSD-3-Clause"
 __stable__ = True
-__version__ = "3.0.9"
+__version__ = "3.0.10"
 
 from . import common
 from . import connectors
