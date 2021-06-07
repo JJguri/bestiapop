@@ -194,7 +194,7 @@ however solar radiation data is available after 1983. For details see [here](htt
 
 There are two ways to install BestiaPop
 
-1. With pip
+1. With **pip**
 2. Cloning repo
 
 ## 1. Install using PIP
@@ -211,22 +211,14 @@ There are two ways to install BestiaPop
 
 ### Using pip
 
-1. Change directory to the repo folder
+1. **Change directory to the repo folder**
 2. `pip install -r pip_requirements.txt`
 
 ### Using Anaconda
 
-#### In you Base Environment
-
-This option might take a *very* long time due to the multiple dependencies that Anaconda might have to solve on your default **base environment**. Preferably, install using the next method which creates a custom environment.
-
-1. Open your anaconda prompt for the *base* environment (default)
-2. `conda install -y -c conda-forge --file pip_requirements.txt`
-
 #### Create Custom Environment
 
-1. `conda create -y --name bestiapop python==3.7`
-2. `conda install --name bestiapop -y -c conda-forge --file pip_requirements.txt`
+1. `conda env create --name bestiapop --file environment.yml`
 3. `conda activate bestiapop`
 
 # Usage
@@ -250,7 +242,8 @@ This command will **only** download the file from the cloud, it won't perform an
 > **NOTE**: a year range must be separated by a dash, whereas multiple climate variables are separated by spaces
 
 ```powershell
-python bestiapop.py -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
+# using bestiapop as a "module" here
+python -m bestiapop -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 ```
 
 ### Generate Climate Files
