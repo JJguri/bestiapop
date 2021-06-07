@@ -141,35 +141,38 @@ More information
 Installation
 ============
 
+There are two ways to install BestiaPop
+
+1. With **pip**
+2. Cloning repo
+
+1. Install using PIP
+~~~~~~~~~~~~~~~~~~~~
+
+1. ``pip install bestiapop`` --> This will install all required packages that BestiaPop needs to run as well
+2. **Done!**, to use, sipmply type ``python -m bestiapop [args]`` :)
+
+> **NOTE**: We recomend you install BestiaPop in an isolated environment created with *Anaconda* or *VirtualEnv*. If using *Anaconda* simply do ``conda create -y --name my_data_env python=3.7``
+
+1. Install Cloning BestiaPop Repo
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 1. Clone this repo
 2. Install required packages.
 
 Using Anaconda (preferred)
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Create Custom Environment
-^^^^^^^^^^^^^^^^^^^^^^^^^
+**Create Custom Environment**
 
-1. ``conda create -y --name bestiapop python==3.7``
-2. ``conda install --name bestiapop -y -c conda-forge --file requirements.txt``
-3. ``conda activate bestiapop``
-
-In you Base Environment
-^^^^^^^^^^^^^^^^^^^^^^^
-
-This option might take a *very* long time due to the multiple
-dependencies that Anaconda might have to solve on your default **base
-environment**. Preferably, install using the next method which creates a
-custom environment.
-
-1. Open your anaconda prompt for the *base* environment (default)
-2. ``conda install -y -c conda-forge --file require``
+1. ``conda env create --name bestiapop --file environment.yml``
+2. ``conda activate bestiapop``
 
 Using pip
-~~~~~~~~~
+^^^^^^^^^
 
 1. Change directory to the repo folder
-2. ``pip install -r requirements.txt``
+2. ``pip install -r pip_requirements.txt``
 
 Main References
 ===============

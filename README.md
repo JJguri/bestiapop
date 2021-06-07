@@ -219,7 +219,7 @@ There are two ways to install BestiaPop
 #### Create Custom Environment
 
 1. `conda env create --name bestiapop --file environment.yml`
-3. `conda activate bestiapop`
+2. `conda activate bestiapop`
 
 # Usage
 
