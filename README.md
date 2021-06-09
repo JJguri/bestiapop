@@ -37,7 +37,7 @@ Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
 
 ## How do I cite BestiaPop?
 
-1. Give us a star in this repository if you download or use this package (right top of this page)
+1. If you think this tool helped you in some way please give us a star in this repository after you download or use this package (right top of this page)
 
 2. Explicitly specify in your work (paper, report, etc) you have used _**Bestiapop**_ and cite the following two papers:
 * Ojeda JJ, Eyshi Rezaei E, Remeny TA, Webb MA, Webber HA, Kamali B, Harris RMB, Brown JN, Kidd DB, Mohammed CL, Siebert S, Ewert F, Meinke H (2020) Effects of soil- and climate data aggregation on simulated potato yield and irrigation water demand. _Science of the Total Environment_. 710, 135589. [link paper](https://www.sciencedirect.com/science/article/pii/S0048969719355846?casa_token=OGL6vAdGeLEAAAAA:dULqxjuvxgte1Fbi-TKw8lVkl-l5bjX5y0Zy0nuejczXqfSzv-O4O3mj17SuA4R5uelV-Akuqj0)
