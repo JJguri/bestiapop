@@ -6,7 +6,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/bestiapop?style=flat-square)
 ![PyPI - Total downloads](https://static.pepy.tech/badge/bestiapop)
 ![PyPI - Downloads/month](https://img.shields.io/pypi/dm/bestiapop?style=flat-square)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JJguri/bestiapop/HEAD?filepath=sample-data%2FExampleMapsTasmania.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JJguri/bestiapop/HEAD?filepath=sample-data)
 
 Climate data is an essential input for crop models to predict crop growth and development using site-specific (point) or gridded climate data. However, *Crop Models* expects input data to be encapsulated in custom file formats (`MET`, `WTH`, etc.) which don't conform to a common standard and require various customizations, depending on the prediction engine that generates crop models. Moreover, source data providers like [SILO](https://www.longpaddock.qld.gov.au/silo/gridded-data/) or [NASA POWER](https://power.larc.nasa.gov/) are usually neutral in the type of data output files they provide as part of their API services which leads to a gap between source *raw* data and *processed* data required by crop modelling suites to develop their models. We developed **BestiaPop** (a spanish word that translates to *pop beast*), a Python package which allows model users to automatically download SILO's (Scientific Information for Land Owners) or NASAPOWER gridded climate data and convert this data to files that can be ingested by *Crop Models* like APSIM or DSSAT.
 
