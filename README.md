@@ -52,7 +52,7 @@ Here you can visualise BestiaPop in action
 
 ## Use it in Jupyter Notebook :)
 
-If you would like to use BESTIAPOP in you Jupyter Notebook, you can! Please see the example [notebook](/sample-data/BestiaPop.ipynb)
+If you would like to use BESTIAPOP in you Jupyter Notebook or JupyterLab, you can! Please see several examples [here](/sample-data)
 
 **You can also try it live in Binder Project, just hit the badge mate! -->** [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JJguri/bestiapop/HEAD?filepath=sample-data%2FExampleMapsTasmania.ipynb)
 
