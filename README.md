@@ -27,7 +27,7 @@ Check our docs! --> https://bestiapop.readthedocs.io/en/latest/
 
 * **Data Analytics Specialist & Code Developer**: Diego Perez (@darkquassar / https://linkedin.com/in/diegope)
 
-* **Crop Physiologist & Crop Modeller**: Jonathan Ojeda (@JJguri / https://www.jojeda.com/ / j.ojeda@uq.edu.au)
+* **Crop Eco-physiologist, Crop Modeller & Data Scientist**: Jonathan Ojeda (@JJguri / https://www.jojeda.com/ / jonathanjesusojeda@gmail.com)
 
 ### Acknowledgements
 
