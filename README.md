@@ -238,6 +238,7 @@ This command will **only** download the file from the cloud, it won't perform an
 # using bestiapop as a "module" here
 python -m bestiapop -a download-nc4-file --data-source silo -y "2010-2018" -c "daily_rain max_temp" -o C:\some\output\folder
 ```
+> **NOTE**: This function is currently available only for SILO. Downloading NASAPOWER NetCDF4 file was not implemented yet.
 
 ### Generate Climate Files
 

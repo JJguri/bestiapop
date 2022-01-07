@@ -176,7 +176,8 @@ class Arguments():
         self.pargs = self.parser.parse_args()
 
     def extract_coord_from_file(self, file):
-        self.logger.info("A file has been provided with coordinate values, processing it...")
+        #TODO check why we are getting error with the following line activated.
+        #self.logger.info("A file has been provided with coordinate values, processing it...")
         coordinate_list_table = pd.read_csv(file, names=['lat', 'lon'])
         coordinate_list_array = [[row.lat, row.lon] for i, row in coordinate_list_table.iterrows()]
         return coordinate_list_array
