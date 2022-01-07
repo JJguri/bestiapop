@@ -62,7 +62,7 @@ class NASAPowerClimateDataConnector():
         # Setup Climate Variable Code Translations
         # NASAPOWER Climate variable dict
         self.nasapower_climate_variable_code = {
-            "daily_rain":           "PRECTOT", 
+            "daily_rain":           "PRECTOTCORR", 
             "max_temp":             "T2M_MAX",
             "min_temp":             "T2M_MIN",
             "radiation":            "ALLSKY_SFC_SW_DWN"
@@ -140,66 +140,87 @@ class NASAPowerClimateDataConnector():
                 year_start = year_range[0]
                 year_end = year_range[len(year_range)-1]
 
-                nasapower_api_url = "https://power.larc.nasa.gov/cgi-bin/v1/DataAccess.py"
-
+                nasapower_api_url = "https://power.larc.nasa.gov/api/temporal/daily/point"
+                
                 payload = {
                     "request": "execute",
                     "tempAverage": "DAILY",
                     "identifier": "SinglePoint",
                     "parameters": self.nasapower_climate_variables_string,
-                    "lat": lat,
-                    "lon": lon,
-                    "startDate": "{}0101".format(year_start),
-                    "endDate": "{}1231".format(year_end),
-                    "userCommunity": "AG",
-                    "outputList": "JSON",
-                    "user": "anonymous"
+                    "latitude": lat,
+                    "longitude": lon,
+                    "start": "{}0101".format(year_start),
+                    "end": "{}1231".format(year_end),
+                    "community": "ag",
+                    "format": "json",
+                    "user": "anonymous",
+                    "header":"true",
+                    "time-standard":"lst"
                 }
 
                 r = requests.get(nasapower_api_url, params=payload)
                 json_data = r.json()
 
-                # Shape of data returned by NasaPower
+                # Shape of data returned by NasaPower V2 (Original Bestiapop was written based on NASAPOWER API V1).
+                # NASAPOWER API V2 has changed a little bit the JSON structure and name of PRECTOT by PRECTOTCORR.
                 '''
-                    {'features': [
-                        {'geometry': {'coordinates': [145.50001, -41.14999, 325.05],
-                        'type': 'Point'},
-                        'properties': {
-                            'parameter': {
-                                'ALLSKY_SFC_SW_DWN': {
-                                    '20100101': 29.31,
-                                    '20100102': 23.84,
-                                    '20100103': 18.91,
-                                    '20100104': 20.08
-                                ...
-                                'PRECTOT': {
-                                    '20100101': 0.19,
-                                    '20100102': 1.75,
-                                    '20100103': 1.08,
-                                ...
-                            }
-                        },
-                        'type': 'Feature'}],
-                        'header': {'api_version': '1.1.0',
-                        'endDate': '20101231',
-                        'fillValue': '-99',
-                        'startDate': '20100101',
-                        'title': 'NASA/POWER SRB/FLASHFlux/MERRA2/GEOS 5.12.4 (FP-IT) 0.5 x 0.5 Degree Daily Averaged Data'},
-                        'messages': [],
-                        'outputs': {'json': 'https://power.larc.nasa.gov/downloads/POWER_SinglePoint_Daily_20100101_20101231_41d15S_145d50E_74ee60c3.json'},
-                        'parameterInformation': {
-                        'ALLSKY_SFC_SW_DWN': {'longname': 'All Sky Insolation Incident on a Horizontal Surface',
-                        'units': 'MJ/m^2/day'},
-                        'PRECTOT': {'longname': 'Precipitation', 'units': 'mm day-1'},
-                        'T2M_MAX': {'longname': 'Maximum Temperature at 2 Meters', 'units': 'C'},
-                        'T2M_MIN': {'longname': 'Minimum Temperature at 2 Meters', 'units': 'C'}},
-                        'time': [['Main OPeNDAP Requests:', 0.46], ['Total Script:', 1.91]],
-                        'type': 'FeatureCollection'}
+                    {
+                    'type': 'Feature', 
+                    'geometry': {
+                    'type': 'Point', 
+                    'coordinates': [
+                    145.5, 
+                    -41.15, 
+                    173.75
+                    ]
+                    }, 
+                    'properties': {
+                    'parameter': {
+                    'ALLSKY_SFC_SW_DWN': {
+                    '20160101': 28.56, 
+                    '20160102': 26.17
+                    ...
+                    }, 
+                    'T2M_MAX': {
+                    '20160101': 26.89, 
+                    '20160102': 20.3
+                    ...}, 
+                    'T2M_MIN': {
+                    '20160101': 16.97, 
+                    '20160102': 15.45
+                    ...}, 
+                    'PRECTOTCORR': {
+                    '20160101': 0.01, 
+                    '20160102': 0.13
+                    ...}
+                    }
+                    }, 
+                    'header': {
+                    'title': 'NASA/POWER CERES/MERRA2 Native Resolution Daily Data', 
+                    'api': {
+                    'version': 'v2.2.15', 
+                    'name': 'POWER Daily API'
+                    }, 
+                    'fill_value': -999.0, 
+                    'start': '20160101', 
+                    'end': '20171231'
+                    }, 
+                    'messages': [], 
+                    'parameters': {
+                    'ALLSKY_SFC_SW_DWN': {'units': 'MJ/m^2/day','longname': 'All Sky Surface Shortwave Downward Irradiance'}, 
+                    'T2M_MAX': {'units': 'C', 'longname': 'Temperature at 2 Meters Maximum'}, 
+                    'T2M_MIN': {'units': 'C', 'longname': 'Temperature at 2 Meters Minimum'}, 
+                    'PRECTOTCORR': {'units': 'mm/day', 'longname': 'Precipitation Corrected'}}, 
+                    'times': {
+                    'data': 2.03, 
+                    'process': 0.02
+                    }
+                    }
                 '''
 
                 # Capture all the climate variables inside this class object to not have to repeat calls to the cloud API
-                self.climate_metadata_coordinates = json_data['features'][0]['geometry']['coordinates']
-                self.climate_data = json_data['features'][0]['properties']['parameter']
+                self.climate_metadata_coordinates = json_data['geometry']['coordinates']
+                self.climate_data = json_data['properties']['parameter']
 
             # Proceed to extract the values into a list for each day in the year
             translated_climate_variable = self._Translate_Climate_Var(climate_variable)
