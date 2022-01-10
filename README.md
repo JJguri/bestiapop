@@ -222,6 +222,8 @@ BestiaPop has three primary commands that you can pass in with the `-a` option:
 2. **download-nc4-file**: this command downloads NetCDF4 files from SILO or NASAPOWER
 3. **convert-nc4**: *currently not implemented*, this command will allow you to convert NetCDF4 files to other formats like `json` or `csv`.
 
+> **NOTE**: Latitude and longitude values should have no more than 2 decimals to increase the speed of the download.
+
 ## Examples
 
 > **NOTE**: if you installed BestiaPop using `pip`, then instead of `python bestiapop.py` you will have to use `python -m bestiapop`.
